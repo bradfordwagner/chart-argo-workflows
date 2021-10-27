@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: flavor-image-mirror-template
+  labels:
+    {{- include "labels" . | nindent 4 }}
+spec:
+  entrypoint: main
+  templates:
+  - name: main
+    inputs:
+      parameters:
+      - name: upstream_repo
+      - name: upstream_tag
+      - name: repo_name
+      - name: tag
+        value: latest
+      - name: push
+        value: "--no-push" # empty if we want to push
+    dag:
+      tasks:
+      - name: mirror-image
+        arguments:
+          parameters:
+          - name: repo_name
+            value: "{{`{{ inputs.parameters.repo_name }}`}}"
+          - name: tag
+            value: "{{`{{ inputs.parameters.tag }}`}}-{{`{{ inputs.parameters.upstream_repo }}`}}_{{`{{ inputs.parameters.upstream_tag }}`}}"
+          - name: push
+            value: ""
+          - name: dockerfile
+            value: |
+              FROM {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}
+        templateRef:
+          name: kaniko-template
+          template: main

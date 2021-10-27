@@ -1,0 +1,31 @@
+# used to download a git repository and to put it into an artifact for downstream use
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: git-template
+  labels:
+    {{- include "labels" . | nindent 4 }}
+spec:
+  entrypoint: main
+  templates:
+  - name: main
+    inputs:
+      parameters:
+      - name: git_repo
+        value: https://github.com/bradfordwagner/container-ansible.git
+      - name: git_version
+        value: main
+    outputs:
+      artifacts:
+      - name: git
+        path: /tmp/src
+    container:
+      image: {{ .Values.git.image }}
+      command: [sh]
+      args:
+      - -lc
+      - |
+        cd /tmp
+        git clone {{ `{{ inputs.parameters.git_repo }}` }} src
+        git checkout {{ `{{ inputs.parameters.git_version }}`}}
+        ls -lh src

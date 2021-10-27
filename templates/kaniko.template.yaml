@@ -1,0 +1,46 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: kaniko-template
+  labels:
+    {{- include "labels" . | nindent 4 }}
+spec:
+  entrypoint: main
+  templates:
+  - name: main
+    inputs:
+      parameters:
+      - name: docker_secret
+        value: {{ .Values.kaniko.secret }}
+      - name: repo_name
+        value: quay.io/bradfordwagner/testrepo
+      - name: tag
+        value: latest
+      - name: dockerfile
+      - name: push
+        value: "--no-push" # empty if we want to push
+      artifacts:
+      - name: dockerfile
+        path: /tmp/Dockerfile
+        raw:
+          data: |
+            # source: kaniko build template
+            {{`{{inputs.parameters.dockerfile}}`}}
+    volumes:
+    - name: kaniko-secret
+      secret:
+        secretName: "{{`{{inputs.parameters.docker_secret}}`}}"
+        items:
+          - key: .dockerconfigjson
+            path: config.json
+    container:
+      image: {{ .Values.kaniko.image }}
+      command: [/kaniko/executor]
+      args: ["--dockerfile=/tmp/Dockerfile",
+             "--context=dir://tmp/src",
+             "--destination={{`{{inputs.parameters.repo_name}}`}}:{{`{{inputs.parameters.tag}}`}}",
+             "{{`{{inputs.parameters.push}}`}}"
+            ]
+      volumeMounts:
+        - name: kaniko-secret
+          mountPath: /kaniko/.docker
