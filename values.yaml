@@ -1,0 +1,6 @@
+kaniko:
+  image: gcr.io/kaniko-project/executor:latest
+  secret: bradfordwagner-kaniko-test-pull-secret
+
+git:
+  image: quay.io/bradfordwagner/git:1.0.0-alpine_3.12
