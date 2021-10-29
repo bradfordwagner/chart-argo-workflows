@@ -10,6 +10,8 @@ spec:
   - name: main
     inputs:
       parameters:
+      - name: git_repo
+      - name: git_version
       - name: docker_secret
         value: {{ .Values.kaniko.secret }}
       - name: repo_name
@@ -20,6 +22,11 @@ spec:
       - name: push
         value: "--no-push" # empty if we want to push
       artifacts:
+      - name: git
+        path: /tmp/src
+        git:
+          repo: '{{`{{ inputs.parameters.git_repo }}`}}'
+          revision: '{{`{{ inputs.parameters.git_version }}`}}'
       - name: dockerfile
         path: /tmp/Dockerfile
         raw:
@@ -37,7 +44,7 @@ spec:
       image: {{ .Values.kaniko.image }}
       command: [/kaniko/executor]
       args: ["--dockerfile=/tmp/Dockerfile",
-             "--context=dir://tmp/src",
+             "--context=dir:///tmp/src",
              "--destination={{`{{inputs.parameters.repo_name}}`}}:{{`{{inputs.parameters.tag}}`}}",
              "{{`{{inputs.parameters.push}}`}}"
             ]
