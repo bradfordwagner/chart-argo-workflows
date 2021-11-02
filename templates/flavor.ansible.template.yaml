@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
-  name: flavor-image-mirror-template
+  name: flavor-ansible-template
   labels:
     {{- include "labels" . | nindent 4 }}
 spec:
@@ -14,8 +14,6 @@ spec:
       - name: git_version
       - name: upstream_repo
       - name: upstream_tag
-      - name: upstream_repo_name_override
-        value: ""
       - name: repo_name
       - name: tag
         value: latest
@@ -23,22 +21,30 @@ spec:
         value: "--no-push" # empty if we want to push
     dag:
       tasks:
-      - name: mirror-image
+      - name: build_image
+        templateRef:
+          name: kaniko-template
+          template: main
         arguments:
           parameters:
           - name: git_repo
             value: "{{`{{ inputs.parameters.git_repo }}`}}"
           - name: git_version
             value: "{{`{{ inputs.parameters.git_version }}`}}"
+          - name: upstream_repo
+            value: '{{`{{ inputs.parameters.upstream_repo }}`}}'
+          - name: upstream_tag
+            value: '{{`{{ inputs.parameters.upstream_tag }}`}}'
           - name: repo_name
-            value: "{{`{{ inputs.parameters.repo_name }}`}}"
+            value: '{{`{{ inputs.parameters.repo_name }}`}}'
           - name: tag
-            value: "{{`{{ inputs.parameters.tag }}`}}-{{`{{=sprig.default(inputs.parameters.upstream_repo, inputs.parameters.upstream_repo_name_override)}}`}}_{{`{{ inputs.parameters.upstream_tag }}`}}"
+            value: '{{`{{ inputs.parameters.tag }}`}}'
           - name: push
-            value: ""
+            value: '{{`{{ inputs.parameters.push }}`}}'
           - name: dockerfile
             value: |
               FROM {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}
-        templateRef:
-          name: kaniko-template
-          template: main
+              COPY . .
+              RUN ansible-galaxy install -r requirements.yml
+              RUN ansible-playbook playbook.yml
+              RUN ansible-destroy
