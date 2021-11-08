@@ -1,5 +1,5 @@
 kaniko:
-  image: gcr.io/kaniko-project/executor:latest
+  image: quay.io/bradfordwagner/kaniko:1.0.0-kaniko-executor_v1.7.0
   secret: bradfordwagner-kaniko-test-pull-secret
 
 git:
