@@ -4,3 +4,12 @@ kaniko:
 
 git:
   image: quay.io/bradfordwagner/git:1.0.0-alpine_3.12
+
+flavors:
+  mirror:
+    main:
+      push: --no-push
+    branches:
+      push: --no-push
+    tags:
+      push: ""
