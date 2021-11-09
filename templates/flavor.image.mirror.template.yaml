@@ -34,7 +34,7 @@ spec:
               - name: tag
                 value: "{{`{{ inputs.parameters.tag }}`}}-{{`{{=sprig.default(inputs.parameters.upstream_repo, inputs.parameters.upstream_repo_name_override)}}`}}_{{`{{ inputs.parameters.upstream_tag }}`}}"
               - name: push
-                value: ""
+                value: {{ $v.push }}
               - name: dockerfile
                 value: |
                   FROM {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}
