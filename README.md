@@ -2,6 +2,6 @@
 
 ## Helper Command
 ```bash
-watchexec -cr "helm delete workflows; helm install workflows ."
+watchexec -cr "helm -n argo delete workflows; helm -n argo install workflows ."
 ```
 

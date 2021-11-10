@@ -1,0 +1,64 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: flavor-git-template
+  labels:
+    {{- include "labels" . | nindent 4 }}
+spec:
+  entrypoint: main
+  templates:
+  - name: main
+    inputs:
+      parameters:
+        - name: git_repo
+        - name: git_version
+        - name: git_ref_type # [tags|branches]
+      artifacts:
+          - name: git_repo
+            path: /src
+            git:
+              repo: {{`{{ inputs.parameters.git_repo }}` | quote}}
+              revision: {{`{{ inputs.parameters.git_version }}` | quote}}
+    container:
+#     image: {{.Values.flavors.git.argo_image}}
+      # TODO: get this to actually submit, clarify standardized parameters
+#     args: ["submit /src/workflow.yaml -p git_ref_type={{`{{inputs.parameters.git_ref_type`}} -p git_version={{`{{inputs.parameters.git_version}}`}}" ]
+
+      image: alpine
+      command: [sh, -lc]
+      args:
+        - |
+          ls -lh /src
+          echo {{`{{inputs.parameters.git_version}}`}}
+#   dag:
+#     tasks:
+#       - name: invoke_workflow
+#         inputs:
+#           artifacts:
+#             - name: git_repo
+#               path: /src
+#               git:
+#                 repo: {{`{{ inputs.parameters.git_repo }}` | quote}}
+#                 revision: {{`{{ inputs.parameters.git_version }}` | quote}}
+#         arguments:
+#           parameters:
+#             - name: git_repo
+#               value: "{{`{{ inputs.parameters.git_repo }}`}}"
+#             - name: git_version
+#               value: "{{`{{ inputs.parameters.git_version }}`}}"
+#             - name: repo_name
+#               value: "{{`{{ inputs.parameters.repo_name }}`}}"
+#             - name: tag
+#               value: "{{`{{ inputs.parameters.tag }}`}}-{{`{{=sprig.default(inputs.parameters.upstream_repo, inputs.parameters.upstream_repo_name_override)}}`}}_{{`{{ inputs.parameters.upstream_tag }}`}}"
+#             - name: push
+#               value: "--no-push"
+#             - name: dockerfile
+#               value: |
+#                 FROM {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}
+#         container:
+#           image: alpine
+#           command: [sh, -lc]
+#           args: [echo hello world]
+#         templateRef:
+#           name: kaniko-template
+#           template: main
