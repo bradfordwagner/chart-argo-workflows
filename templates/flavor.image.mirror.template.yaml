@@ -18,8 +18,6 @@ spec:
         - name: upstream_repo_name_override
           value: ""
         - name: repo_name
-        - name: tag
-          value: latest
     dag:
       tasks:
         - name: mirror-image
