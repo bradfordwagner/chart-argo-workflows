@@ -17,7 +17,6 @@ spec:
       - name: repo_name
         value: quay.io/bradfordwagner/testrepo
       - name: tag
-        value: latest
       - name: dockerfile
       - name: push
         value: "--no-push" # empty if we want to push
