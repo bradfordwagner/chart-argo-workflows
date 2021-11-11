@@ -10,5 +10,12 @@ flavors:
       push: --no-push
     tags:
       push: ""
+  custom_dockerfile:
+    main:
+      push: --no-push
+    branches:
+      push: --no-push
+    tags:
+      push: ""
   git:
     argo_image: quay.io/bradfordwagner/argo:2.0.0-argocli_v3.2.3

@@ -5,7 +5,7 @@ metadata:
   labels:
     {{- include "labels" . | nindent 4 }}
 spec:
-  entrypoint: main
+  entrypoint: branches
   templates:
 {{ range $k, $v := .Values.flavors.mirror }}
   - name: {{ $k }}
