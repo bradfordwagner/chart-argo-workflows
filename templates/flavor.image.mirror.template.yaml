@@ -32,7 +32,11 @@ spec:
               - name: repo_name
                 value: "{{`{{ inputs.parameters.repo_name }}`}}"
               - name: tag
-                value: "{{`{{ inputs.parameters.tag }}`}}-{{`{{=sprig.default(inputs.parameters.upstream_repo, inputs.parameters.upstream_repo_name_override)}}`}}_{{`{{ inputs.parameters.upstream_tag }}`}}"
+              {{ if eq $k "tags" }}
+                value: "{{`{{ inputs.parameters.git_version }}`}}-{{`{{=sprig.default(inputs.parameters.upstream_repo, inputs.parameters.upstream_repo_name_override)}}`}}_{{`{{ inputs.parameters.upstream_tag }}`}}"
+              {{ else }}
+                value: "latest-{{`{{=sprig.default(inputs.parameters.upstream_repo, inputs.parameters.upstream_repo_name_override)}}`}}_{{`{{ inputs.parameters.upstream_tag }}`}}"
+              {{- end }}
               - name: push
                 value: {{ $v.push | quote }}
               - name: dockerfile
