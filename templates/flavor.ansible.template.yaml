@@ -7,7 +7,8 @@ metadata:
 spec:
   entrypoint: main
   templates:
-  - name: main
+{{ range $k, $v := .Values.flavors.custom_dockerfile }}
+  - name: {{ $k }}
     inputs:
       parameters:
       - name: git_repo
@@ -15,10 +16,7 @@ spec:
       - name: upstream_repo
       - name: upstream_tag
       - name: repo_name
-      - name: tag
-        value: latest
-      - name: push
-        value: "--no-push" # empty if we want to push
+      - name: platform
     dag:
       tasks:
       - name: build_image
@@ -31,20 +29,21 @@ spec:
             value: "{{`{{ inputs.parameters.git_repo }}`}}"
           - name: git_version
             value: "{{`{{ inputs.parameters.git_version }}`}}"
-          - name: upstream_repo
-            value: '{{`{{ inputs.parameters.upstream_repo }}`}}'
-          - name: upstream_tag
-            value: '{{`{{ inputs.parameters.upstream_tag }}`}}'
           - name: repo_name
             value: '{{`{{ inputs.parameters.repo_name }}`}}'
           - name: tag
-            value: '{{`{{ inputs.parameters.tag }}`}}'
+            {{ if eq $k "tags" }}
+            value: "{{`{{ inputs.parameters.git_version }}`}}-{{`{{inputs.parameters.platform}}`}}"
+            {{ else }}
+            value: "latest-{{`{{inputs.parameters.platform}}`}}"
+            {{- end }}
           - name: push
-            value: '{{`{{ inputs.parameters.push }}`}}'
+            value: {{ $v.push | quote }}
           - name: dockerfile
             value: |
-              FROM {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}
+              FROM {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}-{{`{{ inputs.parameters.platform}}`}}
               COPY . .
               RUN ansible-galaxy install -r requirements.yml
               RUN ansible-playbook playbook.yml
               RUN ansible-destroy
+{{- end }}

@@ -12,10 +12,7 @@ spec:
       parameters:
       - name: git_repo
       - name: git_version
-      - name: docker_secret
-        value: {{ .Values.kaniko.secret }}
       - name: repo_name
-        value: quay.io/bradfordwagner/testrepo
       - name: tag
       - name: dockerfile
       - name: push
@@ -35,7 +32,7 @@ spec:
     volumes:
     - name: kaniko-secret
       secret:
-        secretName: "{{`{{inputs.parameters.docker_secret}}`}}"
+        secretName: {{ .Values.kaniko.secret }}
         items:
           - key: .dockerconfigjson
             path: config.json
