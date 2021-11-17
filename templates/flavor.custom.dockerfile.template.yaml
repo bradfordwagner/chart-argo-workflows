@@ -5,24 +5,21 @@ metadata:
   labels:
     {{- include "labels" . | nindent 4 }}
 spec:
-  entrypoint: main
+  entrypoint: branches
   templates:
-  - name: main
+{{ range $k, $v := .Values.flavors.custom_dockerfile }}
+  - name: {{ $k }}
     inputs:
       parameters:
       - name: git_repo
       - name: git_version
       - name: upstream_repo
-      - name: upstream_tag
       - name: repo_name
-      - name: tag
-        value: latest
-      - name: push
-        value: "--no-push" # empty if we want to push
       - name: dockerfile
+      - name: platform
     dag:
       tasks:
-      - name: build_image
+      - name: build-image
         templateRef:
           name: kaniko-template
           template: main
@@ -32,16 +29,16 @@ spec:
             value: "{{`{{ inputs.parameters.git_repo }}`}}"
           - name: git_version
             value: "{{`{{ inputs.parameters.git_version }}`}}"
-          - name: upstream_repo
-            value: '{{`{{ inputs.parameters.upstream_repo }}`}}'
-          - name: upstream_tag
-            value: '{{`{{ inputs.parameters.upstream_tag }}`}}'
           - name: repo_name
             value: '{{`{{ inputs.parameters.repo_name }}`}}'
           - name: tag
-            value: '{{`{{ inputs.parameters.tag }}`}}'
+            {{ if eq $k "tags" }}
+            value: "{{`{{ inputs.parameters.git_version }}`}}-{{`{{inputs.parameters.platform}}`}}"
+            {{ else }}
+            value: "latest-{{`{{inputs.parameters.platform}}`}}"
+            {{- end }}
           - name: push
-            value: '{{`{{ inputs.parameters.push }}`}}'
+            value: {{ $v.push | quote }}
           - name: dockerfile
             value: '{{`{{ inputs.parameters.dockerfile }}`}}'
-
+{{- end }}

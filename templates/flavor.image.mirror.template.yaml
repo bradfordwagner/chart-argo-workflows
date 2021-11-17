@@ -5,40 +5,42 @@ metadata:
   labels:
     {{- include "labels" . | nindent 4 }}
 spec:
-  entrypoint: main
+  entrypoint: branches
   templates:
-  - name: main
+{{ range $k, $v := .Values.flavors.mirror }}
+  - name: {{ $k }}
     inputs:
       parameters:
-      - name: git_repo
-      - name: git_version
-      - name: upstream_repo
-      - name: upstream_tag
-      - name: upstream_repo_name_override
-        value: ""
-      - name: repo_name
-      - name: tag
-        value: latest
-      - name: push
-        value: "--no-push" # empty if we want to push
+        - name: git_repo
+        - name: git_version
+        - name: upstream_repo
+        - name: upstream_tag
+        - name: upstream_repo_name_override
+          value: ""
+        - name: repo_name
     dag:
       tasks:
-      - name: mirror-image
-        arguments:
-          parameters:
-          - name: git_repo
-            value: "{{`{{ inputs.parameters.git_repo }}`}}"
-          - name: git_version
-            value: "{{`{{ inputs.parameters.git_version }}`}}"
-          - name: repo_name
-            value: "{{`{{ inputs.parameters.repo_name }}`}}"
-          - name: tag
-            value: "{{`{{ inputs.parameters.tag }}`}}-{{`{{=sprig.default(inputs.parameters.upstream_repo, inputs.parameters.upstream_repo_name_override)}}`}}_{{`{{ inputs.parameters.upstream_tag }}`}}"
-          - name: push
-            value: ""
-          - name: dockerfile
-            value: |
-              FROM {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}
-        templateRef:
-          name: kaniko-template
-          template: main
+        - name: mirror-image
+          arguments:
+            parameters:
+              - name: git_repo
+                value: "{{`{{ inputs.parameters.git_repo }}`}}"
+              - name: git_version
+                value: "{{`{{ inputs.parameters.git_version }}`}}"
+              - name: repo_name
+                value: "{{`{{ inputs.parameters.repo_name }}`}}"
+              - name: tag
+              {{ if eq $k "tags" }}
+                value: "{{`{{ inputs.parameters.git_version }}`}}-{{`{{=sprig.default(inputs.parameters.upstream_repo, inputs.parameters.upstream_repo_name_override)}}`}}_{{`{{ inputs.parameters.upstream_tag }}`}}"
+              {{ else }}
+                value: "latest-{{`{{=sprig.default(inputs.parameters.upstream_repo, inputs.parameters.upstream_repo_name_override)}}`}}_{{`{{ inputs.parameters.upstream_tag }}`}}"
+              {{- end }}
+              - name: push
+                value: {{ $v.push | quote }}
+              - name: dockerfile
+                value: |
+                  FROM {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}
+          templateRef:
+            name: kaniko-template
+            template: main
+{{- end }}

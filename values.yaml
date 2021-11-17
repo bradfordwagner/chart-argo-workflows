@@ -1,6 +1,28 @@
 kaniko:
-  image: quay.io/bradfordwagner/kaniko:1.0.0-kaniko-executor_v1.7.0
+  image: quay.io/bradfordwagner/kaniko:2.0.0-kaniko-executor_v1.7.0
   secret: bradfordwagner-kaniko-test-pull-secret
 
-git:
-  image: quay.io/bradfordwagner/git:1.0.0-alpine_3.12
+flavors:
+  mirror:
+    main:
+      push: --no-push
+    branches:
+      push: --no-push
+    tags:
+      push: ""
+  custom_dockerfile:
+    main:
+      push: --no-push
+    branches:
+      push: --no-push
+    tags:
+      push: ""
+  ansible:
+    main:
+      push: --no-push
+    branches:
+      push: --no-push
+    tags:
+      push: ""
+  git:
+    argo_image: quay.io/bradfordwagner/argo:2.0.0-argocli_v3.2.3

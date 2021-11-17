@@ -12,12 +12,8 @@ spec:
       parameters:
       - name: git_repo
       - name: git_version
-      - name: docker_secret
-        value: {{ .Values.kaniko.secret }}
       - name: repo_name
-        value: quay.io/bradfordwagner/testrepo
       - name: tag
-        value: latest
       - name: dockerfile
       - name: push
         value: "--no-push" # empty if we want to push
@@ -36,7 +32,7 @@ spec:
     volumes:
     - name: kaniko-secret
       secret:
-        secretName: "{{`{{inputs.parameters.docker_secret}}`}}"
+        secretName: {{ .Values.kaniko.secret }}
         items:
           - key: .dockerconfigjson
             path: config.json
