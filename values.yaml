@@ -2,11 +2,15 @@ kaniko:
   image: quay.io/bradfordwagner/kaniko:2.0.0-kaniko-executor_v1.7.0
   secret: bradfordwagner-kaniko-test-pull-secret
 
+manifest:
+  image: quay.io/bradfordwagner/manifest-tool:1.0.0-manifest_tool_v1.0.3
+
 flavors:
   mirror:
     main:
       push: --no-push
     branches:
+#      push: ""
       push: --no-push
     tags:
       push: ""
@@ -20,6 +24,11 @@ flavors:
   ansible:
     main:
       push: --no-push
+    branches:
+      push: --no-push
+    tags:
+      push: ""
+  go:
     branches:
       push: --no-push
     tags:

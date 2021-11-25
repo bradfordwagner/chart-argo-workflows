@@ -1,0 +1,52 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: flavor-go-template
+  labels:
+    {{- include "labels" . | nindent 4 }}
+spec:
+  entrypoint: main
+  templates:
+{{ range $k, $v := .Values.flavors.custom_dockerfile }}
+  - name: {{ $k }}
+    inputs:
+      parameters:
+      - name: git_repo
+      - name: git_version
+      - name: upstream_repo
+      - name: upstream_tag
+      - name: repo_name
+      - name: platform
+      - name: go_main_path
+    dag:
+      tasks:
+      - name: build-image
+        templateRef:
+          name: kaniko-template
+          template: main
+        arguments:
+          parameters:
+          - name: git_repo
+            value: "{{`{{ inputs.parameters.git_repo }}`}}"
+          - name: git_version
+            value: "{{`{{ inputs.parameters.git_version }}`}}"
+          - name: repo_name
+            value: '{{`{{ inputs.parameters.repo_name }}`}}'
+          - name: tag
+            {{ if eq $k "tags" }}
+            value: "{{`{{ inputs.parameters.git_version }}`}}-{{`{{inputs.parameters.platform}}`}}"
+            {{ else }}
+            value: "latest-{{`{{inputs.parameters.platform}}`}}"
+            {{- end }}
+          - name: push
+            value: {{ $v.push | quote }}
+          - name: dockerfile
+            value: |
+              FROM {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}-{{`{{ inputs.parameters.platform}}`}}
+              COPY . .
+              RUN go build {{`{{ inputs.parameters.go_main_path}}`}}
+              # need multi-stage container
+              #  -- specify runtime container - scratch or other platform to use base container
+              # publication
+              #  -- to github?
+{{- end }}

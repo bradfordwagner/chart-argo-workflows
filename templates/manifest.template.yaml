@@ -1,7 +1,13 @@
+# TODO: fill this out
+# https://github.com/estesp/manifest-tool
+# $ ./manifest-tool push from-args \
+#    --platforms linux/amd64,linux/arm,linux/arm64 \
+#    --template foo/bar-ARCH:v1 \
+#    --target foo/bar:v1
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
-  name: kaniko-template
+  name: manifest-template
   labels:
     {{- include "labels" . | nindent 4 }}
 spec:

@@ -18,6 +18,9 @@ spec:
         - name: upstream_repo_name_override
           value: ""
         - name: repo_name
+        # options from:  https://gist.github.com/asukakenji/f15ba7e588ac42795f421b48b8aede63#platform-values
+        - name: runtime_platforms
+          value: [linux/amd64]
     dag:
       tasks:
         - name: mirror-image
@@ -31,16 +34,19 @@ spec:
                 value: "{{`{{ inputs.parameters.repo_name }}`}}"
               - name: tag
               {{ if eq $k "tags" }}
-                value: "{{`{{ inputs.parameters.git_version }}`}}-{{`{{=sprig.default(inputs.parameters.upstream_repo, inputs.parameters.upstream_repo_name_override)}}`}}_{{`{{ inputs.parameters.upstream_tag }}`}}"
+                value: "{{`{{ inputs.parameters.git_version }}`}}-{{`{{=sprig.default(inputs.parameters.upstream_repo, inputs.parameters.upstream_repo_name_override)}}`}}_{{`{{ inputs.parameters.upstream_tag }}`}}-{{`{{=sprig.replace('/','_',item)}}`}}"
               {{ else }}
-                value: "latest-{{`{{=sprig.default(inputs.parameters.upstream_repo, inputs.parameters.upstream_repo_name_override)}}`}}_{{`{{ inputs.parameters.upstream_tag }}`}}"
+                value: "latest-{{`{{=sprig.default(inputs.parameters.upstream_repo, inputs.parameters.upstream_repo_name_override)}}`}}_{{`{{ inputs.parameters.upstream_tag }}`}}-{{`{{=sprig.replace('/','_',item)}}`}}"
               {{- end }}
               - name: push
                 value: {{ $v.push | quote }}
+              - name: runtime_platform
+                value: "{{`{{item}}`}}"
               - name: dockerfile
                 value: |
                   FROM {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}
           templateRef:
             name: kaniko-template
             template: main
+          withParam: "{{`{{inputs.parameters.runtime_platforms}}`}}"
 {{- end }}
