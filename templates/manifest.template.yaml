@@ -16,26 +16,12 @@ spec:
   - name: main
     inputs:
       parameters:
-      - name: git_repo
-      - name: git_version
       - name: repo_name
+      # base tag to use ie
+      # tag-upstream_upstreamtag
       - name: tag
-      - name: dockerfile
-      - name: runtime_platform
-      - name: push
-        value: "--no-push" # empty if we want to push
-      artifacts:
-      - name: git
-        path: /tmp/src
-        git:
-          repo: '{{`{{ inputs.parameters.git_repo }}`}}'
-          revision: '{{`{{ inputs.parameters.git_version }}`}}'
-      - name: dockerfile
-        path: /tmp/Dockerfile
-        raw:
-          data: |
-            # source: kaniko build template
-            {{`{{inputs.parameters.dockerfile}}`}}
+      - name: runtime_platforms
+        value: []
     volumes:
     - name: kaniko-secret
       secret:
@@ -44,13 +30,22 @@ spec:
           - key: .dockerconfigjson
             path: config.json
     container:
-      image: {{ .Values.kaniko.image }}
-      command: [/kaniko/executor]
-      args: ["--dockerfile=/tmp/Dockerfile",
-             "--context=dir:///tmp/src",
-             "--destination={{`{{inputs.parameters.repo_name}}`}}:{{`{{inputs.parameters.tag}}`}}",
-             "--customPlatform={{`{{inputs.parameters.runtime_platform}}`}}",
-             "{{`{{inputs.parameters.push}}`}}"
+#      image: {{ .Values.manifest.image }}
+#      command: [/manifest-tool]
+      image: alpine
+      command: [echo]
+      args: [
+            push,
+            from-args,
+            "--platforms",
+            # TODO: fix this is yielding push from-args --platforms ["linux/arm64","linux/amd64","linux/arm"] --template quay.io/bradfordwagner/base:latest-alpin
+        #e_3.12-OS_ARCH --target quay.io/bradfordwagner/base:latest-alpine_3.12
+            # [] are wrong
+            "{{`{{=sprig.join(',', inputs.parameters.runtime_platforms)}}`}}",
+            "--template",
+            "{{`{{inputs.parameters.repo_name }}`}}:{{`{{inputs.parameters.tag}}`}}-OS_ARCH",
+            "--target",
+            "{{`{{inputs.parameters.repo_name}}`}}:{{`{{inputs.parameters.tag}}`}}"
             ]
       volumeMounts:
         - name: kaniko-secret

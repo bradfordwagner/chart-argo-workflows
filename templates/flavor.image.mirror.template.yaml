@@ -11,16 +11,16 @@ spec:
   - name: {{ $k }}
     inputs:
       parameters:
-        - name: git_repo
-        - name: git_version
-        - name: upstream_repo
-        - name: upstream_tag
-        - name: upstream_repo_name_override
-          value: ""
-        - name: repo_name
-        # options from:  https://gist.github.com/asukakenji/f15ba7e588ac42795f421b48b8aede63#platform-values
-        - name: runtime_platforms
-          value: [linux/amd64]
+      - name: git_repo
+      - name: git_version
+      - name: upstream_repo
+      - name: upstream_tag
+      - name: upstream_repo_name_override
+        value: ""
+      - name: repo_name
+      # options from:  https://gist.github.com/asukakenji/f15ba7e588ac42795f421b48b8aede63#platform-values
+      - name: runtime_platforms
+        value: [linux/amd64]
     dag:
       tasks:
         - name: mirror-image
@@ -34,6 +34,7 @@ spec:
                 value: "{{`{{ inputs.parameters.repo_name }}`}}"
               - name: tag
               {{ if eq $k "tags" }}
+              # tag-upstream_upstreamtag-runtimeplatform
                 value: "{{`{{ inputs.parameters.git_version }}`}}-{{`{{=sprig.default(inputs.parameters.upstream_repo, inputs.parameters.upstream_repo_name_override)}}`}}_{{`{{ inputs.parameters.upstream_tag }}`}}-{{`{{=sprig.replace('/','_',item)}}`}}"
               {{ else }}
                 value: "latest-{{`{{=sprig.default(inputs.parameters.upstream_repo, inputs.parameters.upstream_repo_name_override)}}`}}_{{`{{ inputs.parameters.upstream_tag }}`}}-{{`{{=sprig.replace('/','_',item)}}`}}"
@@ -49,4 +50,36 @@ spec:
             name: kaniko-template
             template: main
           withParam: "{{`{{inputs.parameters.runtime_platforms}}`}}"
+        - name: combine-manifest
+          depends: mirror-image
+          templateRef:
+            name: manifest-template
+            template: main
+#          template: echo
+          arguments:
+            parameters:
+              - name: repo_name
+                value: "{{`{{inputs.parameters.repo_name}}`}}"
+              # base tag to use ie
+              # tag-upstream_upstreamtag
+              - name: tag
+              {{ if eq $k "tags" }}
+              # tag-upstream_upstreamtag
+                value: "{{`{{ inputs.parameters.git_version }}`}}-{{`{{=sprig.default(inputs.parameters.upstream_repo, inputs.parameters.upstream_repo_name_override)}}`}}_{{`{{ inputs.parameters.upstream_tag }}`}}"
+              {{ else }}
+                value: "latest-{{`{{=sprig.default(inputs.parameters.upstream_repo, inputs.parameters.upstream_repo_name_override)}}`}}_{{`{{ inputs.parameters.upstream_tag }}`}}"
+              {{- end }}
+
+              - name: runtime_platforms
+                value: "{{`{{ inputs.parameters.runtime_platforms }}`}}"
+
 {{- end }}
+
+  - name: echo
+    inputs:
+      parameters:
+      - name: message
+    container:
+      image: alpine
+      command: [ echo, "{{`{{inputs.parameters.message}}`}}" ]
+
