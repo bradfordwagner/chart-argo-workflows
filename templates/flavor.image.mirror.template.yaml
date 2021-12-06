@@ -69,9 +69,8 @@ spec:
               {{ else }}
                 value: "latest-{{`{{=sprig.default(inputs.parameters.upstream_repo, inputs.parameters.upstream_repo_name_override)}}`}}_{{`{{ inputs.parameters.upstream_tag }}`}}"
               {{- end }}
-
-              - name: runtime_platforms
-                value: "{{`{{ inputs.parameters.runtime_platforms }}`}}"
+              - name: runtime_platforms_json
+                value: "{{`{{inputs.parameters.runtime_platforms}}`}}"
 
 {{- end }}
 

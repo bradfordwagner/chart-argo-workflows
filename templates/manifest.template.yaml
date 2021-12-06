@@ -1,9 +1,5 @@
-# TODO: fill this out
-# https://github.com/estesp/manifest-tool
-# $ ./manifest-tool push from-args \
-#    --platforms linux/amd64,linux/arm,linux/arm64 \
-#    --template foo/bar-ARCH:v1 \
-#    --target foo/bar:v1
+# to get list of architectures from an image:
+# manifest-tool inspect debian:buster --raw | jq '.[] | "\(.Platform.os)/\(.Platform.architecture)"' -r
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
@@ -20,8 +16,8 @@ spec:
       # base tag to use ie
       # tag-upstream_upstreamtag
       - name: tag
-      - name: runtime_platforms
-        value: []
+      # comma separated list of OS/ARCH to stich together - this is usually auto converted by argo
+      - name: runtime_platforms_json
     volumes:
     - name: kaniko-secret
       secret:
@@ -30,18 +26,15 @@ spec:
           - key: .dockerconfigjson
             path: config.json
     container:
-#      image: {{ .Values.manifest.image }}
-#      command: [/manifest-tool]
-      image: alpine
-      command: [echo]
+      image: {{ .Values.manifest.image }}
+      command: [/manifest-tool]
       args: [
+            --docker-cfg,
+            '/kaniko/.docker',
             push,
             from-args,
             "--platforms",
-            # TODO: fix this is yielding push from-args --platforms ["linux/arm64","linux/amd64","linux/arm"] --template quay.io/bradfordwagner/base:latest-alpin
-        #e_3.12-OS_ARCH --target quay.io/bradfordwagner/base:latest-alpine_3.12
-            # [] are wrong
-            "{{`{{=sprig.join(',', inputs.parameters.runtime_platforms)}}`}}",
+            "{{`{{=sprig.join(',', sprig.fromJson(inputs.parameters.runtime_platforms_json))}}`}}",
             "--template",
             "{{`{{inputs.parameters.repo_name }}`}}:{{`{{inputs.parameters.tag}}`}}-OS_ARCH",
             "--target",
