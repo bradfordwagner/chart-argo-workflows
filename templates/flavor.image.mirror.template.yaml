@@ -50,12 +50,13 @@ spec:
             name: kaniko-template
             template: main
           withParam: "{{`{{inputs.parameters.runtime_platforms}}`}}"
+        {{ if eq $k "tags" }}
+        # only publish manifest on tags
         - name: combine-manifest
           depends: mirror-image
           templateRef:
             name: manifest-template
             template: main
-#          template: echo
           arguments:
             parameters:
               - name: repo_name
@@ -71,14 +72,6 @@ spec:
               {{- end }}
               - name: runtime_platforms_json
                 value: "{{`{{inputs.parameters.runtime_platforms}}`}}"
+        {{- end }}
 
 {{- end }}
-
-  - name: echo
-    inputs:
-      parameters:
-      - name: message
-    container:
-      image: alpine
-      command: [ echo, "{{`{{inputs.parameters.message}}`}}" ]
-

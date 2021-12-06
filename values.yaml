@@ -10,7 +10,6 @@ flavors:
     main:
       push: --no-push
     branches:
-#      push: ""
       push: --no-push
     tags:
       push: ""
