@@ -50,28 +50,10 @@ spec:
             name: kaniko-template
             template: main
           withParam: "{{`{{inputs.parameters.runtime_platforms}}`}}"
-        {{ if eq $k "tags" }}
-        # only publish manifest on tags
-        - name: combine-manifest
-          depends: mirror-image
-          templateRef:
-            name: manifest-template
-            template: main
-          arguments:
-            parameters:
-              - name: repo_name
-                value: "{{`{{inputs.parameters.repo_name}}`}}"
-              # base tag to use ie
-              # tag-upstream_upstreamtag
-              - name: tag
-              {{ if eq $k "tags" }}
-              # tag-upstream_upstreamtag
-                value: "{{`{{ inputs.parameters.git_version }}`}}-{{`{{=sprig.default(inputs.parameters.upstream_repo, inputs.parameters.upstream_repo_name_override)}}`}}_{{`{{ inputs.parameters.upstream_tag }}`}}"
-              {{ else }}
-                value: "latest-{{`{{=sprig.default(inputs.parameters.upstream_repo, inputs.parameters.upstream_repo_name_override)}}`}}_{{`{{ inputs.parameters.upstream_tag }}`}}"
-              {{- end }}
-              - name: runtime_platforms_json
-                value: "{{`{{inputs.parameters.runtime_platforms}}`}}"
+
+        {{- if eq $k "tags" }}
+        {{- $combine_args := dict "template" $k "depends" "mirror-image" }}
+        {{- include "combine-manifest" $combine_args | nindent 8 }}
         {{- end }}
 
 {{- end }}

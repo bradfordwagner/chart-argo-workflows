@@ -17,6 +17,8 @@ spec:
       - name: repo_name
       - name: dockerfile
       - name: platform
+      - name: runtime_platforms
+        value: [linux/amd64]
     dag:
       tasks:
       - name: build-image
@@ -41,4 +43,11 @@ spec:
             value: {{ $v.push | quote }}
           - name: dockerfile
             value: '{{`{{ inputs.parameters.dockerfile }}`}}'
+
+      {{- if eq $k "tags" }}
+      {{- $combine_args := dict "template" $k "depends" "build-image" }}
+      {{- include "combine-manifest" $combine_args | nindent 6 }}
+      {{- end }}
+
 {{- end }}
+

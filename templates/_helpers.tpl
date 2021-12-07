@@ -40,3 +40,34 @@ Selector labels
 app.kubernetes.io/name: {{ include "name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+{{/*
+inputs:
+template = tags|branches
+depends = task to wait on
+*/}}
+
+{{- define "combine-manifest" }}
+# only publish manifest on tags
+- name: combine-manifest
+  depends: {{ .depends }}
+  templateRef:
+    name: manifest-template
+    template: main
+  arguments:
+    parameters:
+      - name: repo_name
+        value: "{{`{{inputs.parameters.repo_name}}`}}"
+      # base tag to use ie
+      # tag-upstream_upstreamtag
+      - name: tag
+        {{ if eq .template "tags" }}
+        # tag-upstream_upstreamtag
+        value: "{{`{{ inputs.parameters.git_version }}`}}-{{`{{=sprig.default(inputs.parameters.upstream_repo, inputs.parameters.upstream_repo_name_override)}}`}}_{{`{{ inputs.parameters.upstream_tag }}`}}"
+        {{ else }}
+        value: "latest-{{`{{=sprig.default(inputs.parameters.upstream_repo, inputs.parameters.upstream_repo_name_override)}}`}}_{{`{{ inputs.parameters.upstream_tag }}`}}"
+        {{- end }}
+      - name: runtime_platforms_json
+        value: "{{`{{inputs.parameters.runtime_platforms}}`}}"
+
+{{- end }}
