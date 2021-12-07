@@ -1,3 +1,5 @@
+## TODO: get this working again
+
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
@@ -25,6 +27,7 @@ spec:
         templateRef:
           name: kaniko-template
           template: main
+        withParam: "{{`{{inputs.parameters.runtime_platforms}}`}}"
         arguments:
           parameters:
           - name: git_repo
@@ -41,6 +44,8 @@ spec:
             {{- end }}
           - name: push
             value: {{ $v.push | quote }}
+          - name: runtime_platform
+            value: "{{`{{item}}`}}"
           - name: dockerfile
             value: '{{`{{ inputs.parameters.dockerfile }}`}}'
 
