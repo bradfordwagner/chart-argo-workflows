@@ -1,4 +1,6 @@
 ## TODO: get this working again
+# this needs to modify the FROM, with --platform ${runtime_platform}
+# we can allow them to set FROM, or we can DEFAULT it
 
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
