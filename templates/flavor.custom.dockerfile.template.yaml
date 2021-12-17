@@ -18,9 +18,10 @@ spec:
       - name: git_repo
       - name: git_version
       - name: upstream_repo
+      - name: upstream_tag
+      - name: platform
       - name: repo_name
       - name: dockerfile
-      - name: platform
       - name: runtime_platforms
         value: [linux/amd64]
     dag:
@@ -49,7 +50,11 @@ spec:
           - name: runtime_platform
             value: "{{`{{item}}`}}"
           - name: dockerfile
-            value: '{{`{{ inputs.parameters.dockerfile }}`}}'
+            # this needs to include the appropriate platform so it uses the properly compile binaries
+            # --platform={{`{{ item }}`}}  
+            value: |
+              FROM {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}
+              {{`{{ inputs.parameters.dockerfile }}`}}
 
       {{- if eq $k "tags" }}
       {{- $combine_args := dict "template" $k "depends" "build-image" }}
