@@ -51,7 +51,7 @@ spec:
             # publication
             #  -- to github?
             value: |
-              FROM {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}-{{`{{ inputs.parameters.platform}}`}}
+              FROM {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}-{{`{{ inputs.parameters.platform}}`}} as builder
               COPY . .
-              RUN go build {{`{{ inputs.parameters.go_main_path}}`}}
+              RUN go build {{`{{ inputs.parameters.go_main_path}}`}}; ls -lha
 {{- end }}
