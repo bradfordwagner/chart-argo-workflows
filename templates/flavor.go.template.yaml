@@ -50,6 +50,23 @@ spec:
             #  -- specify runtime container - scratch or other platform to use base container
             # publication
             #  -- to github?
+            # TODO:
+            # error!
+# ks-image-7dv7q-2339425918: panic: runtime error: index out of range [1] with length 1
+# ks-image-7dv7q-2339425918: goroutine 1 [running]:
+# ks-image-7dv7q-2339425918: github.com/GoogleContainerTools/kaniko/pkg/executor.DoBuild(0x30c06a0, 0x1, 0x0, 0x0, 0xc00025e600)
+# ks-image-7dv7q-2339425918:      /go/src/github.com/GoogleContainerTools/kaniko/pkg/executor/build.go:624 +0x1966
+# ks-image-7dv7q-2339425918: github.com/GoogleContainerTools/kaniko/cmd/executor/cmd.glob..func2(0x30a77a0, 0xc000138e60, 0x0, 0x5)
+# ks-image-7dv7q-2339425918:      /go/src/github.com/GoogleContainerTools/kaniko/cmd/executor/cmd/root.go:141 +0xe8
+# ks-image-7dv7q-2339425918: github.com/spf13/cobra.(*Command).execute(0x30a77a0, 0xc00011a130, 0x5, 0x5, 0x30a77a0, 0xc00011a130)
+# ks-image-7dv7q-2339425918:      /go/src/github.com/GoogleContainerTools/kaniko/vendor/github.com/spf13/cobra/command.go:846 +0x2c2
+# ks-image-7dv7q-2339425918: github.com/spf13/cobra.(*Command).ExecuteC(0x30a77a0, 0xd, 0xc000248ea0, 0x0)
+# ks-image-7dv7q-2339425918:      /go/src/github.com/GoogleContainerTools/kaniko/vendor/github.com/spf13/cobra/command.go:950 +0x375
+# ks-image-7dv7q-2339425918: github.com/spf13/cobra.(*Command).Execute(...)
+# ks-image-7dv7q-2339425918:      /go/src/github.com/GoogleContainerTools/kaniko/vendor/github.com/spf13/cobra/command.go:887
+# ks-image-7dv7q-2339425918: main.main()
+# ks-image-7dv7q-2339425918:      /go/src/github.com/GoogleContainerTools/kaniko/cmd/executor/main.go:31 +0x72
+# ks-image-7dv7q-2339425918: Error: exit status 2
             value: |
               FROM {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}-{{`{{ inputs.parameters.platform}}`}} as builder
               COPY . .
