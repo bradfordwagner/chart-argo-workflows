@@ -18,9 +18,12 @@ spec:
       - name: repo_name
       - name: platform
       - name: go_main_path
+      - name: runtime_platforms
+        value: [linux/amd64]
     dag:
       tasks:
       - name: build-image
+        withParam: "{{`{{inputs.parameters.runtime_platforms}}`}}"
         templateRef:
           name: kaniko-template
           template: main
@@ -40,6 +43,8 @@ spec:
             {{- end }}
           - name: push
             value: {{ $v.push | quote }}
+          - name: runtime_platform
+            value: "{{`{{item}}`}}"
           - name: dockerfile
             value: |
               FROM {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}-{{`{{ inputs.parameters.platform}}`}}
