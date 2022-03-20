@@ -46,12 +46,12 @@ spec:
           - name: runtime_platform
             value: "{{`{{item}}`}}"
           - name: dockerfile
+            # need multi-stage container
+            #  -- specify runtime container - scratch or other platform to use base container
+            # publication
+            #  -- to github?
             value: |
               FROM {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}-{{`{{ inputs.parameters.platform}}`}}
               COPY . .
               RUN go build {{`{{ inputs.parameters.go_main_path}}`}}
-              # need multi-stage container
-              #  -- specify runtime container - scratch or other platform to use base container
-              # publication
-              #  -- to github?
 {{- end }}
