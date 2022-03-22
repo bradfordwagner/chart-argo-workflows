@@ -1,7 +1,3 @@
-## TODO: get this working again
-# this needs to modify the FROM, with --platform ${runtime_platform}
-# we can allow them to set FROM, or we can DEFAULT it
-
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
@@ -50,10 +46,8 @@ spec:
           - name: runtime_platform
             value: "{{`{{item}}`}}"
           - name: dockerfile
-            # this needs to include the appropriate platform so it uses the properly compile binaries
-            # --platform={{`{{ item }}`}}  
             value: |
-              FROM {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}
+              FROM --platform={{`{{item}}`}} {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}} as builder
               {{`{{ inputs.parameters.dockerfile }}`}}
 
       {{- if eq $k "tags" }}
