@@ -19,12 +19,15 @@ spec:
       - name: tag_suffix
       - name: repo_name
       - name: platform
+      - name: runtime_platforms
+        value: [linux/amd64]
     dag:
       tasks:
       - name: build-image
         templateRef:
           name: kaniko-template
           template: main
+        withParam: "{{`{{inputs.parameters.runtime_platforms}}`}}"
         arguments:
           parameters:
           - name: git_repo
@@ -35,15 +38,17 @@ spec:
             value: '{{`{{ inputs.parameters.repo_name }}`}}'
           - name: tag
             {{ if eq $k "tags" }}
-            value: "{{`{{ inputs.parameters.git_version }}`}}-{{`{{inputs.parameters.platform}}`}}"
+            value: "{{`{{ inputs.parameters.git_version }}`}}{{`{{inputs.parameters.tag_suffix}}`}}-{{`{{=sprig.replace('/','_',item)}}`}}"
             {{ else }}
-            value: "latest-{{`{{inputs.parameters.platform}}`}}"
+            value: "latest{{`{{inputs.parameters.tag_suffix}}`}}-{{`{{=sprig.replace('/','_',item)}}`}}"
             {{- end }}
           - name: push
             value: {{ $v.push | quote }}
+          - name: runtime_platform
+            value: "{{`{{item}}`}}"
           - name: dockerfile
             value: |
-              FROM {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}-{{`{{ inputs.parameters.platform}}`}} as builder
+              FROM --platform={{`{{item}}`}} {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}-{{`{{ inputs.parameters.platform}}`}} as builder
               COPY . .
               RUN ansible-galaxy install -r requirements.yml
               RUN ansible-playbook playbook.yml

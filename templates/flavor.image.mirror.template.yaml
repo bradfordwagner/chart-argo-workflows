@@ -37,7 +37,7 @@ spec:
                 {{ if eq $k "tags" }}
                 value: "{{`{{ inputs.parameters.git_version }}`}}{{`{{inputs.parameters.tag_suffix}}`}}-{{`{{=sprig.replace('/','_',item)}}`}}"
                 {{ else }}
-                value: "latest-{{`{{inputs.parameters.tag_suffix}}`}}-{{`{{=sprig.replace('/','_',item)}}`}}"
+                value: "latest{{`{{inputs.parameters.tag_suffix}}`}}-{{`{{=sprig.replace('/','_',item)}}`}}"
                 {{- end }}
               - name: push
                 value: {{ $v.push | quote }}
