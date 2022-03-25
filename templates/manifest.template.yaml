@@ -2,7 +2,8 @@
 # manifest-tool inspect debian:buster --raw | jq '.[] | "\(.Platform.os)/\(.Platform.architecture)"' -r
 
 # TODO: fix maanifest list
-# time="2022-03-22T13:19:38Z" level=fatal msg="Error parsing name for manifest list (quay.io/bradfordwagner/ansible:3.0.0-quay.io/bradfordwagner/base_2.1.0-debian_bullseye): invalid reference format"
+# time="2022-03-25T02:53:44Z" level=fatal msg="Inspect of image \"quay.io/bradfordwagner/ansible:3.0.2-ubuntu_bionic-linux_amd64\" failed with error: manifest unknown: manifest unknown"
+# the upstream linux_amd64 dne - i don't see it on quay.io!
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
