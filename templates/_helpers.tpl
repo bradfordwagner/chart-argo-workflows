@@ -63,9 +63,9 @@ depends = task to wait on
       - name: tag
         {{ if eq .template "tags" }}
         # tag-upstreamSuffix
-        value: "{{`{{ inputs.parameters.git_version }}`}}{{`{{ inputs.parameters.upstream_tag_suffix }}`}}"
+        value: "{{`{{ inputs.parameters.git_version }}`}}{{`{{ inputs.parameters.tag_suffix }}`}}"
         {{ else }}
-        value: "latest-{{`{{=sprig.default(inputs.parameters.upstream_repo, inputs.parameters.upstream_repo_name_override)}}`}}_{{`{{ inputs.parameters.upstream_tag }}`}}"
+        value: "latest-{{`{{inputs.parameters.upstream_tag_suffix`}}"
         {{- end }}
       - name: runtime_platforms_json
         value: "{{`{{inputs.parameters.runtime_platforms}}`}}"
