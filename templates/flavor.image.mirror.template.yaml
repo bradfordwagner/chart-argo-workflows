@@ -45,7 +45,7 @@ spec:
                 value: "{{`{{item}}`}}"
               - name: dockerfile
                 value: |
-                  FROM {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}
+                  FROM --platform={{`{{item}}`}} {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}} as builder
           templateRef:
             name: kaniko-template
             template: main
