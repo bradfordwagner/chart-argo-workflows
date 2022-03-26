@@ -53,4 +53,9 @@ spec:
               RUN ansible-galaxy install -r requirements.yml
               RUN ansible-playbook playbook.yml
               RUN ansible-destroy
+
+      {{- if eq $k "tags" }}
+      {{- $combine_args := dict "template" $k "depends" "build-image" }}
+      {{- include "combine-manifest" $combine_args | nindent 6 }}
+      {{- end }}
 {{- end }}
