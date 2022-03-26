@@ -1,9 +1,9 @@
 kaniko:
-  image: quay.io/bradfordwagner/kaniko:2.1.0-kaniko-executor_v1.7.0
+  image: quay.io/bradfordwagner/kaniko:2.2.2-kaniko-executor-v1.8.0
   secret: bradfordwagner-kaniko-test-pull-secret
 
 manifest:
-  image: quay.io/bradfordwagner/manifest-tool:1.1.0-manifest_tool_v1.0.3
+  image: quay.io/bradfordwagner/manifest-tool:1.2.0-manifest_tool-v2.0.3
 
 flavors:
   mirror:
@@ -33,4 +33,4 @@ flavors:
     tags:
       push: ""
   git:
-    argo_image: quay.io/bradfordwagner/argo:2.1.0-argocli_v3.2.4
+    argo_image: quay.io/bradfordwagner/argo:2.2.1-argocli-v3.3.1
