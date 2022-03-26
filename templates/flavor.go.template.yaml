@@ -51,4 +51,9 @@ spec:
               FROM --platform={{`{{item}}`}} {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}-{{`{{ inputs.parameters.platform}}`}} as builder
               COPY . .
               RUN go build {{`{{ inputs.parameters.go_main_path}}`}}
+
+      {{- if eq $k "tags" }}
+      {{- $combine_args := dict "template" $k "depends" "build-image" }}
+      {{- include "combine-manifest" $combine_args | nindent 6 }}
+      {{- end }}
 {{- end }}
