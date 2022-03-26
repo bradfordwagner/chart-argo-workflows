@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
-  name: flavor-ansible-template
+  name: flavor-go-template
   labels:
     {{- include "labels" . | nindent 4 }}
 spec:
@@ -19,15 +19,16 @@ spec:
       - name: tag_suffix
       - name: repo_name
       - name: platform
+      - name: go_main_path
       - name: runtime_platforms
         value: [linux/amd64]
     dag:
       tasks:
       - name: build-image
+        withParam: "{{`{{inputs.parameters.runtime_platforms}}`}}"
         templateRef:
           name: kaniko-template
           template: main
-        withParam: "{{`{{inputs.parameters.runtime_platforms}}`}}"
         arguments:
           parameters:
           - name: git_repo
@@ -47,12 +48,11 @@ spec:
           - name: runtime_platform
             value: "{{`{{item}}`}}"
           - name: dockerfile
+            # platform sets the target architecture, will require 3 args then to build the image - https://docs.docker.com/engine/reference/builder/#from
             value: |
               FROM --platform={{`{{item}}`}} {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}-{{`{{ inputs.parameters.platform}}`}} as builder
               COPY . .
-              RUN ansible-galaxy install -r requirements.yml
-              RUN ansible-playbook playbook.yml
-              RUN ansible-destroy
+              RUN go build {{`{{ inputs.parameters.go_main_path}}`}}
 
       {{- if eq $k "tags" }}
       {{- $combine_args := dict "template" $k "depends" "build-image" }}

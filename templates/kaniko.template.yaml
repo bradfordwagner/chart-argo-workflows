@@ -15,6 +15,7 @@ spec:
       - name: repo_name
       - name: tag
       - name: dockerfile
+      - name: runtime_platform
       - name: push
         value: "--no-push" # empty if we want to push
       artifacts:
@@ -42,6 +43,7 @@ spec:
       args: ["--dockerfile=/tmp/Dockerfile",
              "--context=dir:///tmp/src",
              "--destination={{`{{inputs.parameters.repo_name}}`}}:{{`{{inputs.parameters.tag}}`}}",
+             "--customPlatform={{`{{inputs.parameters.runtime_platform}}`}}",
              "{{`{{inputs.parameters.push}}`}}"
             ]
       volumeMounts:

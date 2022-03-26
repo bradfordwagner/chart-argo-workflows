@@ -11,13 +11,17 @@ spec:
   - name: {{ $k }}
     inputs:
       parameters:
-        - name: git_repo
-        - name: git_version
-        - name: upstream_repo
-        - name: upstream_tag
-        - name: upstream_repo_name_override
-          value: ""
-        - name: repo_name
+      - name: git_repo
+      - name: git_version
+      - name: upstream_repo
+      - name: upstream_tag
+      # suffix to add to the end of our tag ie ${git_version}-${upstream_tag_suffix} which is usually platform or platform+version
+      - name: tag_suffix
+        value: ""
+      - name: repo_name
+      # options from:  https://gist.github.com/asukakenji/f15ba7e588ac42795f421b48b8aede63#platform-values
+      - name: runtime_platforms
+        value: [linux/amd64]
     dag:
       tasks:
         - name: mirror-image
@@ -30,17 +34,26 @@ spec:
               - name: repo_name
                 value: "{{`{{ inputs.parameters.repo_name }}`}}"
               - name: tag
-              {{ if eq $k "tags" }}
-                value: "{{`{{ inputs.parameters.git_version }}`}}-{{`{{=sprig.default(inputs.parameters.upstream_repo, inputs.parameters.upstream_repo_name_override)}}`}}_{{`{{ inputs.parameters.upstream_tag }}`}}"
-              {{ else }}
-                value: "latest-{{`{{=sprig.default(inputs.parameters.upstream_repo, inputs.parameters.upstream_repo_name_override)}}`}}_{{`{{ inputs.parameters.upstream_tag }}`}}"
-              {{- end }}
+                {{ if eq $k "tags" }}
+                value: "{{`{{ inputs.parameters.git_version }}`}}{{`{{inputs.parameters.tag_suffix}}`}}-{{`{{=sprig.replace('/','_',item)}}`}}"
+                {{ else }}
+                value: "latest{{`{{inputs.parameters.tag_suffix}}`}}-{{`{{=sprig.replace('/','_',item)}}`}}"
+                {{- end }}
               - name: push
                 value: {{ $v.push | quote }}
+              - name: runtime_platform
+                value: "{{`{{item}}`}}"
               - name: dockerfile
                 value: |
-                  FROM {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}
+                  FROM --platform={{`{{item}}`}} {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}} as builder
           templateRef:
             name: kaniko-template
             template: main
+          withParam: "{{`{{inputs.parameters.runtime_platforms}}`}}"
+
+        {{- if eq $k "tags" }}
+        {{- $combine_args := dict "template" $k "depends" "mirror-image" }}
+        {{- include "combine-manifest" $combine_args | nindent 8 }}
+        {{- end }}
+
 {{- end }}

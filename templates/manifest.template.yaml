@@ -1,0 +1,45 @@
+# to get list of architectures from an image:
+# manifest-tool inspect debian:buster --raw | jq '.[] | "\(.Platform.os)/\(.Platform.architecture)"' -r
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: manifest-template
+  labels:
+    {{- include "labels" . | nindent 4 }}
+spec:
+  entrypoint: main
+  templates:
+  - name: main
+    inputs:
+      parameters:
+      - name: repo_name
+      # base tag to use ie
+      # tag-upstream_upstreamtag
+      - name: tag
+      # comma separated list of OS/ARCH to stich together - this is usually auto converted by argo
+      - name: runtime_platforms_json
+    volumes:
+    - name: kaniko-secret
+      secret:
+        secretName: {{ .Values.kaniko.secret }}
+        items:
+          - key: .dockerconfigjson
+            path: config.json
+    container:
+      image: {{ .Values.manifest.image }}
+      command: [/manifest-tool]
+      args: [
+            --docker-cfg,
+            '/kaniko/.docker',
+            push,
+            from-args,
+            "--platforms",
+            "{{`{{=sprig.join(',', sprig.fromJson(inputs.parameters.runtime_platforms_json))}}`}}",
+            "--template",
+            "{{`{{inputs.parameters.repo_name }}`}}:{{`{{inputs.parameters.tag}}`}}-OS_ARCH",
+            "--target",
+            "{{`{{inputs.parameters.repo_name}}`}}:{{`{{inputs.parameters.tag}}`}}"
+            ]
+      volumeMounts:
+        - name: kaniko-secret
+          mountPath: /kaniko/.docker

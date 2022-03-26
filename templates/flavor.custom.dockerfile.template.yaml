@@ -14,15 +14,21 @@ spec:
       - name: git_repo
       - name: git_version
       - name: upstream_repo
+      - name: upstream_tag
+      # suffix to add to the end of our tag ie ${git_version}-${upstream_tag_suffix} which is usually platform or platform+version
+      - name: tag_suffix
+      - name: platform
       - name: repo_name
       - name: dockerfile
-      - name: platform
+      - name: runtime_platforms
+        value: [linux/amd64]
     dag:
       tasks:
       - name: build-image
         templateRef:
           name: kaniko-template
           template: main
+        withParam: "{{`{{inputs.parameters.runtime_platforms}}`}}"
         arguments:
           parameters:
           - name: git_repo
@@ -33,12 +39,23 @@ spec:
             value: '{{`{{ inputs.parameters.repo_name }}`}}'
           - name: tag
             {{ if eq $k "tags" }}
-            value: "{{`{{ inputs.parameters.git_version }}`}}-{{`{{inputs.parameters.platform}}`}}"
+            value: "{{`{{ inputs.parameters.git_version }}`}}{{`{{inputs.parameters.tag_suffix}}`}}-{{`{{=sprig.replace('/','_',item)}}`}}"
             {{ else }}
-            value: "latest-{{`{{inputs.parameters.platform}}`}}"
+            value: "latest{{`{{inputs.parameters.tag_suffix}}`}}-{{`{{=sprig.replace('/','_',item)}}`}}"
             {{- end }}
           - name: push
             value: {{ $v.push | quote }}
+          - name: runtime_platform
+            value: "{{`{{item}}`}}"
           - name: dockerfile
-            value: '{{`{{ inputs.parameters.dockerfile }}`}}'
+            value: |
+              FROM --platform={{`{{item}}`}} {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}} as builder
+              {{`{{ inputs.parameters.dockerfile }}`}}
+
+      {{- if eq $k "tags" }}
+      {{- $combine_args := dict "template" $k "depends" "build-image" }}
+      {{- include "combine-manifest" $combine_args | nindent 6 }}
+      {{- end }}
+
 {{- end }}
+
