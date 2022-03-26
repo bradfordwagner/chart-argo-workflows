@@ -15,6 +15,8 @@ spec:
       - name: git_version
       - name: upstream_repo
       - name: upstream_tag
+      # suffix to add to the end of our tag ie ${git_version}-${upstream_tag_suffix} which is usually platform or platform+version
+      - name: tag_suffix
       - name: repo_name
       - name: platform
       - name: go_main_path
@@ -37,9 +39,9 @@ spec:
             value: '{{`{{ inputs.parameters.repo_name }}`}}'
           - name: tag
             {{ if eq $k "tags" }}
-            value: "{{`{{ inputs.parameters.git_version }}`}}-{{`{{inputs.parameters.platform}}`}}"
+            value: "{{`{{ inputs.parameters.git_version }}`}}{{`{{inputs.parameters.tag_suffix}}`}}-{{`{{=sprig.replace('/','_',item)}}`}}"
             {{ else }}
-            value: "latest-{{`{{inputs.parameters.platform}}`}}"
+            value: "latest{{`{{inputs.parameters.tag_suffix}}`}}-{{`{{=sprig.replace('/','_',item)}}`}}"
             {{- end }}
           - name: push
             value: {{ $v.push | quote }}
