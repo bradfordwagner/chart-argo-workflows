@@ -1,5 +1,5 @@
 kaniko:
-  image: quay.io/bradfordwagner/kaniko:2.2.2-kaniko-executor-v1.8.0
+  image: quay.io/bradfordwagner/kaniko:2.3.0-kaniko-executor-v1.8.1
   secret: bradfordwagner-kaniko-test-pull-secret
 
 manifest:
@@ -34,3 +34,4 @@ flavors:
       push: ""
   git:
     argo_image: quay.io/bradfordwagner/argo:2.2.1-argocli-v3.3.1
+
