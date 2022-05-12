@@ -19,12 +19,12 @@ spec:
       # comma separated list of OS/ARCH to stich together - this is usually auto converted by argo
       - name: runtime_platforms_json
     volumes:
-    - name: kaniko-secret
-      secret:
-        secretName: {{ .Values.kaniko.secret }}
-        items:
-          - key: .dockerconfigjson
-            path: config.json
+      - name: quay
+        csi:
+          driver: 'secrets-store.csi.k8s.io'
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: quay
     container:
       image: {{ .Values.manifest.image }}
       command: [/manifest-tool]
@@ -41,5 +41,5 @@ spec:
             "{{`{{inputs.parameters.repo_name}}`}}:{{`{{inputs.parameters.tag}}`}}"
             ]
       volumeMounts:
-        - name: kaniko-secret
+        - name: quay
           mountPath: /kaniko/.docker
