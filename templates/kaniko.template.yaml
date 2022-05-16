@@ -31,12 +31,12 @@ spec:
             # source: kaniko build template
             {{`{{inputs.parameters.dockerfile}}`}}
     volumes:
-    - name: kaniko-secret
-      secret:
-        secretName: {{ .Values.kaniko.secret }}
-        items:
-          - key: .dockerconfigjson
-            path: config.json
+    - name: quay
+      csi:
+        driver: 'secrets-store.csi.k8s.io'
+        readOnly: true
+        volumeAttributes:
+          secretProviderClass: quay
     container:
       image: {{ .Values.kaniko.image }}
       command: [/kaniko/executor]
@@ -47,5 +47,5 @@ spec:
              "{{`{{inputs.parameters.push}}`}}"
             ]
       volumeMounts:
-        - name: kaniko-secret
+        - name: quay
           mountPath: /kaniko/.docker

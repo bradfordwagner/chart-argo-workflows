@@ -1,6 +1,5 @@
 kaniko:
   image: quay.io/bradfordwagner/kaniko:2.3.0-kaniko-executor-v1.8.1
-  secret: bradfordwagner-kaniko-test-pull-secret
 
 manifest:
   image: quay.io/bradfordwagner/manifest-tool:1.2.0-manifest_tool-v2.0.3
