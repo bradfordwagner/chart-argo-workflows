@@ -19,6 +19,8 @@ spec:
       - name: tag_suffix
       - name: repo_name
       - name: platform
+      - name: ansible_destroy
+        value: 'true'
       - name: runtime_platforms
         value: [linux/amd64]
     dag:
@@ -46,13 +48,15 @@ spec:
             value: {{ $v.push | quote }}
           - name: runtime_platform
             value: "{{`{{item}}`}}"
+          - name: ansible_destroy
+            value: "{{ `{{ inputs.parameters.ansible_destroy }}`}}"
           - name: dockerfile
             value: |
               FROM --platform={{`{{item}}`}} {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}-{{`{{ inputs.parameters.platform}}`}} as builder
               COPY . .
               RUN ansible-galaxy install -r requirements.yml
               RUN ansible-playbook playbook.yml
-              RUN ansible-destroy
+              RUN {{`{{=sprig.ternary('ansible-destroy','echo skipping destroy',inputs.parameters.ansible_destroy == "true")}}`}}
 
       {{- if eq $k "tags" }}
       {{- $combine_args := dict "template" $k "depends" "build-image" }}

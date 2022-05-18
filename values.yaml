@@ -34,3 +34,4 @@ flavors:
   git:
     argo_image: quay.io/bradfordwagner/argo:2.2.1-argocli-v3.3.1
 
+
