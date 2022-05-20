@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: flavor-ansible-role-template
+  labels:
+    {{- include "labels" . | nindent 4 }}
+spec:
+  entrypoint: main
+  templates:
+  - name: main
+    inputs:
+      parameters:
+      - name: ansible_role
+      - name: git_repo
+      - name: git_version
+      - name: upstream_repo
+      - name: upstream_tag
+      # suffix to add to the end of our tag ie ${git_version}-${upstream_tag_suffix} which is usually platform or platform+version
+      - name: tag_suffix
+      - name: platform
+      - name: runtime_platforms
+        value: [linux/amd64]
+    dag:
+      tasks:
+      - name: main
+        templateRef:
+          name: kaniko-template
+          template: main
+        withParam: "{{`{{inputs.parameters.runtime_platforms}}`}}"
+        arguments:
+          parameters:
+          - name: git_repo
+            value: "{{`{{ inputs.parameters.git_repo }}`}}"
+          - name: git_version
+            value: "{{`{{ inputs.parameters.git_version }}`}}"
+          - name: runtime_platform
+            value: "{{`{{item}}`}}"
+          - name: dockerfile
+            value: |
+              FROM --platform={{`{{item}}`}} {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}-{{`{{ inputs.parameters.platform}}`}} as builder
+              RUN mkdir -p roles/{{`{{ inputs.parameters.ansible_role }}`}}
+              COPY . roles/{{`{{ inputs.parameters.ansible_role }}`}}
+              RUN run_role.sh {{`{{ inputs.parameters.ansible_role }}`}}
+

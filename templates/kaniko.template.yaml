@@ -13,7 +13,9 @@ spec:
       - name: git_repo
       - name: git_version
       - name: repo_name
+        value: stub # not a real repo
       - name: tag
+        value: latest
       - name: dockerfile
       - name: runtime_platform
       - name: push
