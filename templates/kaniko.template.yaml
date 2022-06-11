@@ -58,6 +58,8 @@ spec:
       command: [/kaniko/executor]
       args: ["--dockerfile=/tmp/Dockerfile",
              "--context=dir:///tmp/src",
+             "--snapshotMode=redo",
+             "--use-new-run",
              "--destination={{`{{inputs.parameters.repo_name}}`}}:{{`{{inputs.parameters.tag}}`}}",
              "--customPlatform={{`{{inputs.parameters.runtime_platform}}`}}",
              "{{`{{inputs.parameters.push}}`}}"

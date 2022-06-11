@@ -4,7 +4,10 @@ kaniko:
 manifest:
   image: quay.io/bradfordwagner/manifest-tool:1.2.0-manifest_tool-v2.0.3
 
+
 flavors:
+  terraform:
+    image: quay.io/bradfordwagner/terraform:1.4.1-ubuntu_bionic-linux_amd64
   mirror:
     main:
       push: --no-push
