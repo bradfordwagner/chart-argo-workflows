@@ -51,8 +51,16 @@ spec:
             # platform sets the target architecture, will require 3 args then to build the image - https://docs.docker.com/engine/reference/builder/#from
             value: |
               FROM --platform={{`{{item}}`}} {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}-{{`{{ inputs.parameters.platform}}`}} as builder
-              COPY . .
-              RUN go build {{`{{ inputs.parameters.go_main_path}}`}}
+              COPY . src
+              WORKDIR src
+              RUN goreleaser check
+              {{ if eq $k "tags" }}
+              RUN git status # if git is in a bad state (non-ignored files changed) goreleaser cannot proceed
+              RUN . /vault/secrets/go-releaser; goreleaser release
+              {{ else }}
+              RUN goreleaser build --snapshot
+              {{- end }}
+              RUN ls -lh dist
 
       {{- if eq $k "tags" }}
       {{- $combine_args := dict "template" $k "depends" "build-image" }}
