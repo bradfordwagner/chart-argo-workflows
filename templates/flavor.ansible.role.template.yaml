@@ -10,7 +10,6 @@ spec:
   - name: main
     inputs:
       parameters:
-      - name: ansible_role
       - name: git_repo
       - name: git_version
       - name: upstream_repo
@@ -18,6 +17,8 @@ spec:
       # suffix to add to the end of our tag ie ${git_version}-${upstream_tag_suffix} which is usually platform or platform+version
       - name: tag_suffix
       - name: platform
+      - name: ansible_debug
+        value: false
       - name: runtime_platforms
         value: [linux/amd64]
     dag:
@@ -38,7 +39,9 @@ spec:
           - name: dockerfile
             value: |
               FROM --platform={{`{{item}}`}} {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}-{{`{{ inputs.parameters.platform}}`}} as builder
-              RUN mkdir -p roles/{{`{{ inputs.parameters.ansible_role }}`}}
-              COPY . roles/{{`{{ inputs.parameters.ansible_role }}`}}
-              RUN run_role.sh {{`{{ inputs.parameters.ansible_role }}`}}
+              COPY . src
+              WORKDIR src
+              RUN {{`{{=sprig.ternary('ansible -m setup localhost','echo skipping host debug',inputs.parameters.ansible_destroy == "true")}}`}}
+              RUN [ -f meta/requirements.yml ] && ansible-galaxy install -r meta/requirements.yml || echo "Skipping role dependency download: no requirements.yml found"
+              RUN ansible-playbook test.yml
 
