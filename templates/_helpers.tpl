@@ -71,3 +71,8 @@ depends = task to wait on
         value: "{{`{{inputs.parameters.runtime_platforms}}`}}"
 
 {{- end }}
+
+{{- define "parameter.from.input" }}
+- name: {{ . }}
+  value: "{{ printf `{{ inputs.parameters.%s }}` . }}"
+{{- end }}

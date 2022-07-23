@@ -41,7 +41,7 @@ spec:
               FROM --platform={{`{{item}}`}} {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}-{{`{{ inputs.parameters.platform}}`}} as builder
               COPY . src
               WORKDIR src
-              RUN {{`{{=sprig.ternary('ansible -m setup localhost','echo skipping host debug',inputs.parameters.ansible_destroy == "true")}}`}}
-              RUN [ -f meta/requirements.yml ] && ansible-galaxy install -r meta/requirements.yml || echo "Skipping role dependency download: no requirements.yml found"
+              RUN {{`{{=sprig.ternary('ansible -m setup localhost','echo Skipping Host Debug',inputs.parameters.ansible_debug == "true")}}`}}
+              RUN [ -f meta/requirements.yml ] && ansible-galaxy install -r meta/requirements.yml || echo "Skipping Role Dependency Download: No requirements.yml Found"
               RUN ansible-playbook test.yml
 

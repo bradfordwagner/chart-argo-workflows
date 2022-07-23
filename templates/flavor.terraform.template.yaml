@@ -1,0 +1,113 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: flavor-terraform-template
+  labels:
+    {{- include "labels" . | nindent 4 }}
+spec:
+  entrypoint: main
+  templates:
+  - name: main
+    inputs:
+      parameters:
+      - name: git_repo
+      - name: git_ref_type
+        value: branches
+      - name: git_version
+      - name: terraform_image
+        value: "{{ $.Values.flavors.terraform.image }}"
+      - name: vault_secrets_enabled
+        value: false
+      - name: vault_env_secrets_paths
+        value: "[]"
+      - name: vault_role
+        value: "default"
+      # issues token for the same role to use in terraform - good for vault provider
+      - name: vault_issue_token
+        value: false
+    steps:
+    - - name: plan
+        template: tf-plan
+        arguments:
+          parameters:
+            {{- include "parameter.from.input" "terraform_image"         | nindent 13 }}
+            {{- include "parameter.from.input" "git_repo"                | nindent 13 }}
+            {{- include "parameter.from.input" "git_ref_type"            | nindent 13 }}
+            {{- include "parameter.from.input" "git_version"             | nindent 13 }}
+            {{- include "parameter.from.input" "vault_secrets_enabled"   | nindent 13 }}
+            {{- include "parameter.from.input" "vault_env_secrets_paths" | nindent 13 }}
+            {{- include "parameter.from.input" "vault_role"              | nindent 13 }}
+            {{- include "parameter.from.input" "vault_issue_token"       | nindent 13 }}
+  - name: tf-plan
+    metadata:
+      annotations:
+        vault.hashicorp.com/agent-inject: "{{`{{ inputs.parameters.vault_secrets_enabled }}`}}"
+        vault.hashicorp.com/role: "{{`{{ inputs.parameters.vault_role }}`}}"
+        vault.hashicorp.com/agent-cache-enable: "true"
+        vault.hashicorp.com/agent-cache-use-auto-auth-token: "true"
+        vault.hashicorp.com/agent-cache-listener-port: "8200"
+        vault.hashicorp.com/agent-cache-use-auto-auth-token: force
+    inputs:
+      parameters:
+      - name: git_repo
+      - name: git_ref_type
+      - name: git_version
+      - name: terraform_image
+      - name: vault_secrets_enabled
+      - name: vault_env_secrets_paths
+      - name: vault_role
+      - name: vault_issue_token
+      artifacts:
+      - name: git
+        path: /tmp/src
+        git:
+          repo: '{{`{{ inputs.parameters.git_repo }}`}}'
+          revision: '{{`{{ inputs.parameters.git_version }}`}}'
+    container:
+      podSpecPatch: '{"shareProcessNamespace": true}'
+      workingDir: /tmp/src
+      image: '{{`{{ inputs.parameters.terraform_image }}`}}'
+      command: [/bin/sh, -lc]
+      args:
+        - |
+          export VAULT_ADDR=http://127.0.0.1:8200
+          export VAULT_FORMAT=json
+          for i in {1..10}; do
+            vault status 1>&- 2>&- # disable output
+            status_code=$?
+            if [ ${status_code} -eq 0 ]; then
+              echo Vault Agent Sidecar Ready
+            fi
+            sleep 1
+          done
+
+          # ensure we have something to source no matter what
+          touch ./source.sh
+
+          # create a vault token for terraform to use if necessary - a subtoken of the current
+          if [ "{{`{{ inputs.parameters.vault_issue_token }}`}}" = true ]; then
+            vault token create | jq -r '.auth.client_token | "export VAULT_TOKEN=\(.)"' > source.sh
+          fi
+
+          # take vault_env_secrets_paths and make each key and environment variable with its value
+          echo "{{`{{=sprig.join('\n', sprig.fromJson(inputs.parameters.vault_env_secrets_paths))}}`}}" > paths.txt
+          num_env_secrets=$(cat paths.txt | wc -l)
+          if [ "${num_env_secrets}" -gt "0" ]; then
+            echo Importing ${num_env_secrets} Vault Secrets into ENV
+            cat paths.txt
+            # for each path and for each key in each path export the variable into source.sh
+            cat paths.txt | xargs -I % vault kv get % | jq -r '.data.data | to_entries | .[] | "export \(.key)=\(.value)"' >> source.sh
+          fi
+
+          # source imported environment variables
+          . ./source.sh
+          rm source.sh # cleanup
+
+          terraform init
+          terraform plan
+
+          # apply only on tags!
+          if [ "tags" = "{{`{{ inputs.parameters.git_ref_type }}`}}" ]; then
+            terraform apply -auto-approve
+          fi
+
