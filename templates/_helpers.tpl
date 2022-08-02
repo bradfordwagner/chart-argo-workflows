@@ -48,6 +48,8 @@ depends = task to wait on
 */}}
 
 {{- define "combine-manifest" }}
+{{- $platform_json       := default "{{`{{inputs.parameters.runtime_platforms}}`}}" .platform_json -}}
+{{- $platform_json_pluck := default "" .platform_json_pluck -}}
 # only publish manifest on tags
 - name: combine-manifest
   depends: {{ .depends }}
@@ -68,7 +70,9 @@ depends = task to wait on
         value: "latest-{{`{{inputs.parameters.upstream_tag_suffix`}}"
         {{- end }}
       - name: runtime_platforms_json
-        value: "{{`{{inputs.parameters.runtime_platforms}}`}}"
+        value: '{{ $platform_json }}'
+      - name: runtime_platforms_json_pluck
+        value: '{{ $platform_json_pluck }}'
 
 {{- end }}
 
