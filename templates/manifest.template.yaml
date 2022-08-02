@@ -18,6 +18,38 @@ spec:
       - name: tag
       # comma separated list of OS/ARCH to stich together - this is usually auto converted by argo
       - name: runtime_platforms_json
+      - name: runtime_platforms_json_pluck
+    steps:
+    - - name: parse-platforms
+        template: parse-platforms
+        arguments:
+          parameters:
+            {{- include "parameter.from.input" "runtime_platforms_json"       | nindent 12 }}
+            {{- include "parameter.from.input" "runtime_platforms_json_pluck" | nindent 12 }}
+
+    - - name: push-manifest
+        template: push-manifest
+        arguments:
+          parameters:
+            {{- include "parameter.from.input" "repo_name" | nindent 12 }}
+            {{- include "parameter.from.input" "tag"       | nindent 12 }}
+            - name: runtime_platforms_json
+              value: "{{`{{ steps.parse-platforms.outputs.result }}`}}"
+
+  - name: parse-platforms
+    inputs:
+      parameters:
+      - name: runtime_platforms_json
+      - name: runtime_platforms_json_pluck
+    container:
+      image: {{ .Values.flavors.terraform.image }}
+      command: [/bin/sh, -lc]
+      args:
+        - |
+          echo {{`{{=sprig.toJson(inputs.parameters.runtime_platforms_json)}}`}} \
+            | jq -rc '[.[] | .{{`{{ inputs.parameters.runtime_platforms_json_pluck }}`}}]'
+
+  - name: push-manifest
     volumes:
       - name: quay
         csi:
@@ -25,6 +57,11 @@ spec:
           readOnly: true
           volumeAttributes:
             secretProviderClass: quay
+    inputs:
+      parameters:
+      - name: repo_name
+      - name: tag
+      - name: runtime_platforms_json
     container:
       image: {{ .Values.manifest.image }}
       command: [/manifest-tool]

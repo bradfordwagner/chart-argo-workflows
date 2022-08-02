@@ -21,15 +21,16 @@ spec:
       - name: platform
       - name: ansible_destroy
         value: 'true'
-      - name: runtime_platforms
-        value: [linux/amd64]
+      - name: ansible_args
+        value: |
+          [{"platform": "linux/amd64", "ansible_extra_args": ""}]
     dag:
       tasks:
       - name: build-image
         templateRef:
           name: kaniko-template
           template: main
-        withParam: "{{`{{inputs.parameters.runtime_platforms}}`}}"
+        withParam: "{{`{{inputs.parameters.ansible_args}}`}}"
         arguments:
           parameters:
           - name: git_repo
@@ -40,26 +41,27 @@ spec:
             value: '{{`{{ inputs.parameters.repo_name }}`}}'
           - name: tag
             {{ if eq $k "tags" }}
-            value: "{{`{{ inputs.parameters.git_version }}`}}{{`{{inputs.parameters.tag_suffix}}`}}-{{`{{=sprig.replace('/','_',item)}}`}}"
+            value: "{{`{{ inputs.parameters.git_version }}`}}{{`{{inputs.parameters.tag_suffix}}`}}-{{`{{=sprig.replace('/','_',item.platform)}}`}}"
             {{ else }}
-            value: "latest{{`{{inputs.parameters.tag_suffix}}`}}-{{`{{=sprig.replace('/','_',item)}}`}}"
+            value: "latest{{`{{inputs.parameters.tag_suffix}}`}}-{{`{{=sprig.replace('/','_',item.platform)}}`}}"
             {{- end }}
           - name: push
             value: {{ $v.push | quote }}
           - name: runtime_platform
-            value: "{{`{{item}}`}}"
+            value: "{{`{{item.platform}}`}}"
           - name: ansible_destroy
             value: "{{ `{{ inputs.parameters.ansible_destroy }}`}}"
           - name: dockerfile
             value: |
-              FROM --platform={{`{{item}}`}} {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}-{{`{{ inputs.parameters.platform}}`}} as builder
+              FROM --platform={{`{{item.platform}}`}} {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}-{{`{{ inputs.parameters.platform}}`}} as builder
               COPY . .
               RUN ansible-galaxy install -r requirements.yml
-              RUN ansible-playbook playbook.yml
+              RUN ansible-playbook playbook.yml -e '{{`{{ item.ansible_extra_args }}`}}'
               RUN {{`{{=sprig.ternary('ansible-destroy','echo skipping destroy',inputs.parameters.ansible_destroy == "true")}}`}}
 
       {{- if eq $k "tags" }}
-      {{- $combine_args := dict "template" $k "depends" "build-image" }}
+      {{- $combine_args := dict "template" $k "depends" "build-image" "platform_json" `{{ inputs.parameters.ansible_args }}` "platform_json_pluck" "platform" }}
       {{- include "combine-manifest" $combine_args | nindent 6 }}
+
       {{- end }}
 {{- end }}
