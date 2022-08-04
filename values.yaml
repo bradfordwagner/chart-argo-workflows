@@ -18,8 +18,6 @@ flavors:
   custom_dockerfile:
     main:
       push: --no-push
-    branches:
-      push: --no-push
     tags:
       push: ""
   ansible:
