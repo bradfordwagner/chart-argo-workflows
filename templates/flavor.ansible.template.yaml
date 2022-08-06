@@ -7,7 +7,66 @@ metadata:
 spec:
   entrypoint: main
   templates:
-{{ range $k, $v := .Values.flavors.custom_dockerfile }}
+  - name: branches
+    inputs:
+      parameters:
+      - name: git_repo
+      - name: git_version
+      - name: upstream_repo
+      - name: upstream_tag
+      # suffix to add to the end of our tag ie ${git_version}-${upstream_tag_suffix} which is usually platform or platform+version
+      - name: tag_suffix
+      - name: repo_name
+      - name: platform
+      - name: ansible_destroy
+        value: 'true'
+      - name: ansible_args
+        value: |
+          [{"platform": "linux/amd64", "ansible_extra_args": ""}]
+    steps:
+    - - name: ansible-playbook
+        template: ansible-playbook-branches
+        withParam: "{{`{{inputs.parameters.ansible_args}}`}}"
+        arguments:
+          parameters:
+            {{- include "parameter.from.input" "git_repo"        | nindent 12 }}
+            {{- include "parameter.from.input" "git_version"     | nindent 12 }}
+            {{- include "parameter.from.input" "ansible_destroy" | nindent 12 }}
+            - name: image
+              value: "{{`{{inputs.parameters.upstream_repo}}:{{inputs.parameters.upstream_tag}}-{{inputs.parameters.platform}}-{{=sprig.replace('/', '_', item.platform)}}`}}"
+            - name: ansible_extra_args
+              value: "{{`{{item.ansible_extra_args}}`}}"
+
+  - name: ansible-playbook-branches
+    inputs:
+      parameters:
+      - name: git_repo
+      - name: git_version
+      - name: ansible_destroy
+      - name: ansible_extra_args
+      - name: image
+      artifacts:
+      - name: source-repo
+        path: /src
+        git:
+          repo: "{{`{{ inputs.parameters.git_repo }}`}}"
+          revision: "{{`{{ inputs.parameters.git_version }}`}}"
+    container:
+      workingDir: /src
+      image: "{{`{{ inputs.parameters.image }}`}}"
+      command: [/bin/sh, -lc]
+      args:
+        - |
+          # shame on me i shouldn't copy and paste this
+          echo image={{`{{ inputs.parameters.image }}`}}
+          ansible-galaxy install -r requirements.yml
+          ansible-playbook playbook.yml -e '{{`{{ inputs.parameters.ansible_extra_args }}`}}'
+          exit_code=$?
+          {{`{{=sprig.ternary('ansible-destroy','echo skipping destroy',inputs.parameters.ansible_destroy == "true")}}`}}
+          exit ${exit_code}
+
+
+{{ range $k, $v := omit .Values.flavors.custom_dockerfile "branches" }}
   - name: {{ $k }}
     inputs:
       parameters:
