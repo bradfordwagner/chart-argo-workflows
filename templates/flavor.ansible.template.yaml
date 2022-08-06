@@ -60,8 +60,11 @@ spec:
           # shame on me i shouldn't copy and paste this
           echo image={{`{{ inputs.parameters.image }}`}}
           ansible-galaxy install -r requirements.yml
-          ansible-playbook playbook.yml -e '{{`{{ item.ansible_extra_args }}`}}'
+          ansible-playbook playbook.yml -e '{{`{{ inputs.parameters.ansible_extra_args }}`}}'
+          exit_code=$?
           {{`{{=sprig.ternary('ansible-destroy','echo skipping destroy',inputs.parameters.ansible_destroy == "true")}}`}}
+          exit ${exit_code}
+
 
 {{ range $k, $v := .Values.flavors.custom_dockerfile }}
   - name: {{ $k }}
