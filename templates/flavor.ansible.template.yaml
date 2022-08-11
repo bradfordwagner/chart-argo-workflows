@@ -8,21 +8,7 @@ spec:
   entrypoint: main
   templates:
   - name: branches
-    inputs:
-      parameters:
-      - name: git_repo
-      - name: git_version
-      - name: upstream_repo
-      - name: upstream_tag
-      # suffix to add to the end of our tag ie ${git_version}-${upstream_tag_suffix} which is usually platform or platform+version
-      - name: tag_suffix
-      - name: repo_name
-      - name: platform
-      - name: ansible_destroy
-        value: 'true'
-      - name: ansible_args
-        value: |
-          [{"platform": "linux/amd64", "ansible_extra_args": ""}]
+    {{- include "ansible.parameters" . | nindent 4 }}
     steps:
     - - name: ansible-playbook
         template: ansible-playbook-branches
@@ -68,21 +54,7 @@ spec:
 
 {{ range $k, $v := omit .Values.flavors.custom_dockerfile "branches" }}
   - name: {{ $k }}
-    inputs:
-      parameters:
-      - name: git_repo
-      - name: git_version
-      - name: upstream_repo
-      - name: upstream_tag
-      # suffix to add to the end of our tag ie ${git_version}-${upstream_tag_suffix} which is usually platform or platform+version
-      - name: tag_suffix
-      - name: repo_name
-      - name: platform
-      - name: ansible_destroy
-        value: 'true'
-      - name: ansible_args
-        value: |
-          [{"platform": "linux/amd64", "ansible_extra_args": ""}]
+    {{- include "ansible.parameters" . | nindent 4 }}
     dag:
       tasks:
       - name: build-image
