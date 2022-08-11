@@ -8,19 +8,6 @@ spec:
   entrypoint: main
   templates:
   - name: main
-    metadata:
-      annotations:
-        # TODO: can this be paramaterized based on inputs?
-        vault.hashicorp.com/agent-inject: "true"
-        vault.hashicorp.com/role: go_releaser_reader
-        vault.hashicorp.com/agent-init-first: "true"
-        vault.hashicorp.com/agent-pre-populate: "true"
-        vault.hashicorp.com/agent-pre-populate-only: "true"
-        vault.hashicorp.com/agent-inject-secret-go-releaser: secret/data/go_releaser
-        vault.hashicorp.com/agent-inject-template-go-releaser: |
-          {{`{{- with secret "secret/go_releaser" -}}`}}
-            export GITHUB_TOKEN={{`{{ .Data.data.GITHUB_TOKEN }}`}}
-          {{`{{- end }}`}}
     inputs:
       parameters:
       - name: git_repo
@@ -45,7 +32,6 @@ spec:
           data: |
             # source: kaniko build template
             {{`{{inputs.parameters.dockerfile}}`}}
-            RUN rm -rf /vault/secrets/* # do not allow secrets to leak
     volumes:
     - name: quay
       csi:
