@@ -14,34 +14,49 @@ spec:
       - name: git_version
       - name: upstream_repo
       - name: upstream_tag
-      # suffix to add to the end of our tag ie ${git_version}-${upstream_tag_suffix} which is usually platform or platform+version
-      - name: tag_suffix
       - name: platform
       - name: ansible_debug
         value: false
-      - name: runtime_platforms
-        value: [linux/amd64]
-    dag:
-      tasks:
-      - name: main
-        templateRef:
-          name: kaniko-template
-          template: main
-        withParam: "{{`{{inputs.parameters.runtime_platforms}}`}}"
+      - name: ansible_args
+        value: |
+          [{"platform": "linux/amd64", "ansible_extra_args": ""}]
+    steps:
+    - - name: ansible-role-test
+        template: ansible-role-test
+        withParam: "{{`{{inputs.parameters.ansible_args}}`}}"
         arguments:
           parameters:
-          - name: git_repo
-            value: "{{`{{ inputs.parameters.git_repo }}`}}"
-          - name: git_version
-            value: "{{`{{ inputs.parameters.git_version }}`}}"
-          - name: runtime_platform
-            value: "{{`{{item}}`}}"
-          - name: dockerfile
-            value: |
-              FROM --platform={{`{{item}}`}} {{`{{ inputs.parameters.upstream_repo }}`}}:{{`{{ inputs.parameters.upstream_tag }}`}}-{{`{{ inputs.parameters.platform}}`}} as builder
-              COPY . src
-              WORKDIR src
-              RUN {{`{{=sprig.ternary('ansible -m setup localhost','echo Skipping Host Debug',inputs.parameters.ansible_debug == "true")}}`}}
-              RUN [ -f meta/requirements.yml ] && ansible-galaxy install -r meta/requirements.yml || echo "Skipping Role Dependency Download: No requirements.yml Found"
-              RUN ansible-playbook test.yml
+            {{- include "parameter.from.input" "git_repo"        | nindent 12 }}
+            {{- include "parameter.from.input" "git_version"     | nindent 12 }}
+            {{- include "parameter.from.input" "ansible_debug"   | nindent 12 }}
+            - name: ansible_extra_args
+              value: "{{`{{ item.ansible_extra_args }}`}}"
+            - name: image
+              value: "{{`{{inputs.parameters.upstream_repo}}:{{inputs.parameters.upstream_tag}}-{{inputs.parameters.platform}}-{{=sprig.replace('/', '_', item.platform)}}`}}"
+
+  - name: ansible-role-test
+    inputs:
+      parameters:
+      - name: git_repo
+      - name: git_version
+      - name: ansible_debug
+        value: false
+      - name: ansible_extra_args
+      - name: image
+      artifacts:
+      - name: source-repo
+        path: /src
+        git:
+          repo: "{{`{{ inputs.parameters.git_repo }}`}}"
+          revision: "{{`{{ inputs.parameters.git_version }}`}}"
+    container:
+      workingDir: /src
+      image: "{{`{{ inputs.parameters.image }}`}}"
+      command: [/bin/sh, -lc]
+      args:
+        - |
+          uname -m
+          {{`{{=sprig.ternary('ansible -m setup localhost','echo Skipping Host Debug',inputs.parameters.ansible_debug == "true")}}`}}
+          [ -f meta/requirements.yml ] && ansible-galaxy install -r meta/requirements.yml || echo "Skipping Role Dependency Download: No requirements.yml Found"
+          ansible-playbook test.yml
 
