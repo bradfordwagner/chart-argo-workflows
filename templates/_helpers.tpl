@@ -126,7 +126,7 @@ rm source.sh paths.txt # cleanup
 {{- end }}
 
 {{- define "combine-manifest" }}
-{{- $platform_json       := default "{{`{{inputs.parameters.runtime_platforms}}`}}" .platform_json -}}
+{{- $platform_json       := default "inputs.parameters.runtime_platforms" .platform_json -}}
 {{- $platform_json_pluck := default "" .platform_json_pluck -}}
 # only publish manifest on tags
 - name: combine-manifest
