@@ -68,5 +68,8 @@ spec:
           else
             goreleaser build --snapshot
           fi
+          exit_code=$?
 
-          ls -lh dist
+          [ -d dist ] && ls -lh dist
+          exit ${exit_code}
+
