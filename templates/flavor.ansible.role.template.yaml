@@ -58,5 +58,6 @@ spec:
           uname -m
           {{`{{=sprig.ternary('ansible -m setup localhost','echo Skipping Host Debug',inputs.parameters.ansible_debug == "true")}}`}}
           [ -f meta/requirements.yml ] && ansible-galaxy install -r meta/requirements.yml || echo "Skipping Role Dependency Download: No requirements.yml Found"
-          ansible-playbook test.yml
+          set -e
+          ansible-playbook test.yml && echo Success || echo Failure
 
