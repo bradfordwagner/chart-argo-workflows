@@ -17,10 +17,9 @@ spec:
           parameters:
             {{- include "parameter.from.input" "git_repo"                | nindent 12 }}
             {{- include "parameter.from.input" "git_version"             | nindent 12 }}
-            {{- include "parameter.from.input" "vault_secrets_enabled"   | nindent 12 }}
+            {{- include "parameter.from.input" "vault_sjcrets_enabled"   | nindent 12 }}
             {{- include "parameter.from.input" "vault_env_secrets_paths" | nindent 12 }}
             {{- include "parameter.from.input" "vault_role"              | nindent 12 }}
-            {{- include "parameter.from.input" "vault_issue_token"       | nindent 12 }}
             - name: image
               value: {{`{{ inputs.parameters.upstream_repo }}:{{ inputs.parameters.upstream_tag }}-{{ inputs.parameters.platform}}` | quote }}
             - name: git_ref_type
@@ -38,7 +37,6 @@ spec:
         - name: vault_secrets_enabled
         - name: vault_env_secrets_paths
         - name: vault_role
-        - name: vault_issue_token
       artifacts:
         - name: source-repo
           path: /src
