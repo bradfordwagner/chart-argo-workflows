@@ -17,9 +17,6 @@ spec:
           parameters:
             {{- include "parameter.from.input" "git_repo"                | nindent 12 }}
             {{- include "parameter.from.input" "git_version"             | nindent 12 }}
-            {{- include "parameter.from.input" "vault_secrets_enabled"   | nindent 12 }}
-            {{- include "parameter.from.input" "vault_env_secrets_paths" | nindent 12 }}
-            {{- include "parameter.from.input" "vault_role"              | nindent 12 }}
             - name: image
               value: {{`{{ inputs.parameters.upstream_repo }}:{{ inputs.parameters.upstream_tag }}-{{ inputs.parameters.platform}}` | quote }}
             - name: git_ref_type
@@ -34,31 +31,32 @@ spec:
         - name: git_ref_type
         - name: git_version
         - name: image
-        - name: vault_secrets_enabled
-        - name: vault_env_secrets_paths
-        - name: vault_role
       artifacts:
         - name: source-repo
           path: /src
           git:
             repo: "{{`{{ inputs.parameters.git_repo }}`}}"
             revision: "{{`{{ inputs.parameters.git_version }}`}}"
-    metadata:
-      annotations:
-        vault.hashicorp.com/agent-inject: "{{`{{ inputs.parameters.vault_secrets_enabled }}`}}"
-        vault.hashicorp.com/role: "{{`{{ inputs.parameters.vault_role }}`}}"
-        vault.hashicorp.com/agent-cache-enable: "true"
-        vault.hashicorp.com/agent-cache-listener-port: "8200"
-        vault.hashicorp.com/agent-cache-use-auto-auth-token: force
+    volumes:
+      - name: secrets
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: go-releaser
     container:
       workingDir: /src
+      envFrom:
+        - secretRef:
+            name: go-releaser
+      volumeMounts:
+        - name: secrets
+          mountPath: /secrets
       image: "{{`{{ inputs.parameters.image }}`}}"
       command: [/bin/sh, -lc]
       args:
         - |
           goreleaser check
-
-          {{- include "vault.secret.import.script" . | nindent 10 }}
 
           if [ "tags" = "{{`{{ inputs.parameters.git_ref_type }}`}}" ]; then
             git status
