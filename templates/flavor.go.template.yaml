@@ -17,7 +17,7 @@ spec:
           parameters:
             {{- include "parameter.from.input" "git_repo"                | nindent 12 }}
             {{- include "parameter.from.input" "git_version"             | nindent 12 }}
-            {{- include "parameter.from.input" "vault_sjcrets_enabled"   | nindent 12 }}
+            {{- include "parameter.from.input" "vault_secrets_enabled"   | nindent 12 }}
             {{- include "parameter.from.input" "vault_env_secrets_paths" | nindent 12 }}
             {{- include "parameter.from.input" "vault_role"              | nindent 12 }}
             - name: image
