@@ -60,16 +60,6 @@ inputs:
     - name: upstream_repo
     - name: upstream_tag
     - name: platform
-    # standard vault variables
-    - name: vault_secrets_enabled
-      value: false
-    - name: vault_env_secrets_paths
-      value: "[]"
-    - name: vault_role
-      value: "default"
-    # issues token for the same role to use in terraform - good for vault provider
-    - name: vault_issue_token
-      value: false
 {{- end }}
 
 {{- define "ansible.parameters" }}
