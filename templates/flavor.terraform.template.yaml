@@ -18,13 +18,15 @@ spec:
         value: "{{ $.Values.flavors.terraform.image }}"
       - name: vault_secrets_enabled
         value: false
-      - name: vault_env_secrets_paths
-        value: "[]"
       - name: vault_role
         value: "default"
       # issues token for the same role to use in terraform - good for vault provider
       - name: vault_issue_token
         value: false
+      - name: csi_class
+        value: ""
+      - name: csi_secret
+        value: ""
     steps:
     - - name: plan
         template: tf-plan
@@ -38,6 +40,8 @@ spec:
             {{- include "parameter.from.input" "vault_env_secrets_paths" | nindent 13 }}
             {{- include "parameter.from.input" "vault_role"              | nindent 13 }}
             {{- include "parameter.from.input" "vault_issue_token"       | nindent 13 }}
+            {{- include "parameter.from.input" "csi_class"               | nindent 13 }}
+            {{- include "parameter.from.input" "csi_secret"              | nindent 13 }}
   - name: tf-plan
     metadata:
       annotations:
@@ -53,19 +57,34 @@ spec:
       - name: git_version
       - name: terraform_image
       - name: vault_secrets_enabled
-      - name: vault_env_secrets_paths
       - name: vault_role
       - name: vault_issue_token
+      - name: csi_class
+      - name: csi_secret
       artifacts:
       - name: git
         path: /tmp/src
         git:
           repo: '{{`{{ inputs.parameters.git_repo }}`}}'
           revision: '{{`{{ inputs.parameters.git_version }}`}}'
+    volumes:
+      - name: secrets
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: "{{`{{ inputs.parameters.csi_class }}`}}"
     container:
+      # required to kill the agent sidecar in case we need to issue a token
       podSpecPatch: '{"shareProcessNamespace": true}'
       workingDir: /tmp/src
       image: '{{`{{ inputs.parameters.terraform_image }}`}}'
+      envFrom:
+        - secretRef:
+            name: "{{`{{ inputs.parameters.csi_secret }}`}}"
+      volumeMounts:
+        - name: secrets
+          mountPath: /secrets
       command: [/bin/sh, -lc]
       args:
         - |
