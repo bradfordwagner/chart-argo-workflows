@@ -1,0 +1,120 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: flavor-terraform-module-template
+  labels:
+    {{- include "labels" . | nindent 4 }}
+spec:
+  entrypoint: main
+  templates:
+  - name: main
+    inputs:
+      parameters:
+      - name: git_repo
+      - name: git_ref_type
+        value: branches
+      - name: git_version
+      - name: terraform_image
+        value: "{{ $.Values.flavors.terraform.image }}"
+      - name: vault_secrets_enabled
+        value: false
+      - name: vault_role
+        value: "default"
+      # issues token for the same role to use in terraform - good for vault provider
+      - name: vault_issue_token
+        value: false
+      - name: csi_class
+        value: ""
+      - name: csi_secret
+        value: ""
+    steps:
+    - - name: csi-enabled
+        template: with_csi
+        when: "{{`{{ inputs.parameters.csi_class }}` | squote }} != ''"
+        arguments:
+          parameters:
+            {{- include "parameter.from.input" "terraform_image"         | nindent 13 }}
+            {{- include "parameter.from.input" "git_repo"                | nindent 13 }}
+            {{- include "parameter.from.input" "git_ref_type"            | nindent 13 }}
+            {{- include "parameter.from.input" "git_version"             | nindent 13 }}
+            {{- include "parameter.from.input" "vault_secrets_enabled"   | nindent 13 }}
+            {{- include "parameter.from.input" "vault_env_secrets_paths" | nindent 13 }}
+            {{- include "parameter.from.input" "vault_role"              | nindent 13 }}
+            {{- include "parameter.from.input" "vault_issue_token"       | nindent 13 }}
+            {{- include "parameter.from.input" "csi_class"               | nindent 13 }}
+            {{- include "parameter.from.input" "csi_secret"              | nindent 13 }}
+    - - name: default
+        template: default
+        arguments:
+          parameters:
+            {{- include "parameter.from.input" "terraform_image"         | nindent 13 }}
+            {{- include "parameter.from.input" "git_repo"                | nindent 13 }}
+            {{- include "parameter.from.input" "git_ref_type"            | nindent 13 }}
+            {{- include "parameter.from.input" "git_version"             | nindent 13 }}
+            {{- include "parameter.from.input" "vault_secrets_enabled"   | nindent 13 }}
+            {{- include "parameter.from.input" "vault_env_secrets_paths" | nindent 13 }}
+            {{- include "parameter.from.input" "vault_role"              | nindent 13 }}
+            {{- include "parameter.from.input" "vault_issue_token"       | nindent 13 }}
+            {{- include "parameter.from.input" "csi_class"               | nindent 13 }}
+            {{- include "parameter.from.input" "csi_secret"              | nindent 13 }}
+
+{{- $csi_enabled := dict "name" "with_csi" "csi_enabled" true }}
+{{- $default     := dict "name" "default" "csi_enabled" false }}
+{{ range tuple $csi_enabled $default }}
+  - name: {{ .name }}
+    metadata:
+      annotations:
+        vault.hashicorp.com/agent-inject: "{{`{{ inputs.parameters.vault_secrets_enabled }}`}}"
+        vault.hashicorp.com/role: "{{`{{ inputs.parameters.vault_role }}`}}"
+        vault.hashicorp.com/agent-cache-enable: "true"
+        vault.hashicorp.com/agent-cache-listener-port: "8200"
+        vault.hashicorp.com/agent-cache-use-auto-auth-token: force
+    inputs:
+      parameters:
+      - name: git_repo
+      - name: git_ref_type
+      - name: git_version
+      - name: terraform_image
+      - name: vault_secrets_enabled
+      - name: vault_role
+      - name: vault_issue_token
+      - name: csi_class
+      - name: csi_secret
+      artifacts:
+      - name: git
+        path: /tmp/src
+        git:
+          repo: '{{`{{ inputs.parameters.git_repo }}`}}'
+          revision: '{{`{{ inputs.parameters.git_version }}`}}'
+    volumes:
+{{- if .csi_enabled }}
+      - name: secrets
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: "{{`{{ inputs.parameters.csi_class }}`}}"
+{{- end }}
+    container:
+      # required to kill the agent sidecar in case we need to issue a token
+      podSpecPatch: '{"shareProcessNamespace": true}'
+      workingDir: /tmp/src
+      image: '{{`{{ inputs.parameters.terraform_image }}`}}'
+{{- if .csi_enabled }}
+      envFrom:
+        - secretRef:
+            name: "{{`{{ inputs.parameters.csi_secret }}`}}"
+      volumeMounts:
+        - name: secrets
+          mountPath: /secrets
+{{- end }}
+      command: [/bin/sh, -lc]
+      args:
+        - |
+          {{- include "vault.secret.import.script" . | nindent 10}}
+          echo Executing Template: {{ .name }}
+
+          # invoke terratest
+          go test ./test
+{{- end }}
+
