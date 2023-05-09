@@ -27,6 +27,12 @@ spec:
         value: ""
       - name: csi_secret
         value: ""
+      # name of terraform workspace
+      - name: workspace_name
+        value: default
+      # path in repository to use as entrypoint
+      - name: workspace_path
+        value: ./
     steps:
     - - name: plan
         template: tf-plan
@@ -42,6 +48,9 @@ spec:
             {{- include "parameter.from.input" "vault_issue_token"       | nindent 13 }}
             {{- include "parameter.from.input" "csi_class"               | nindent 13 }}
             {{- include "parameter.from.input" "csi_secret"              | nindent 13 }}
+            {{- include "parameter.from.input" "workspace_name"          | nindent 13 }}
+            {{- include "parameter.from.input" "workspace_path"          | nindent 13 }}
+
   - name: tf-plan
     metadata:
       annotations:
@@ -61,6 +70,8 @@ spec:
       - name: vault_issue_token
       - name: csi_class
       - name: csi_secret
+      - name: workspace_name
+      - name: workspace_path
       artifacts:
       - name: git
         path: /tmp/src
@@ -85,16 +96,25 @@ spec:
       volumeMounts:
         - name: secrets
           mountPath: /secrets
-      command: [/bin/sh, -lc]
+      command: [/bin/bash, -lc]
       args:
         - |
           {{- include "vault.secret.import.script" . | nindent 10}}
 
-          terraform init
-          terraform plan
+          # initialize variables
+          workspace_name={{`{{ inputs.parameters.workspace_name }}`}}
+          workspace_path={{`{{ inputs.parameters.workspace_path }}`}}
+          [ './' != "${workspace_path}" ] && chdir="-chdir=${workspace_path}"
+          [[ -f ${workspace_path}/terraform.tfvars ]] && tfvars="-var-file ${workspace_path}/terraform.tfvars"
+
+          {{/* set -x # TODO: remove */}}
+          terraform ${chdir} init -backend-config=$(pwd)/backend.hcl -input=false
+          terraform workspace select -or-create=true ${workspace_name}
+          terraform workspace list
+          terraform plan ${chdir} -lock=true -input=false ${tfvars}
 
           # apply only on tags!
           if [ "tags" = "{{`{{ inputs.parameters.git_ref_type }}`}}" ]; then
-            terraform apply -auto-approve
+            terraform ${chdir} apply -auto-approve -lock=true -input=false ${tfvars}
           fi
 
