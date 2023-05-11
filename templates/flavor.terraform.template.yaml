@@ -27,9 +27,16 @@ spec:
         value: ""
       - name: csi_secret
         value: ""
+      # name of terraform workspace
+      - name: workspace_name
+        value: default
+      # path in repository to use as entrypoint
+      - name: workspace_path
+        value: ./
     steps:
-    - - name: plan
-        template: tf-plan
+    - - name: csi-enabled
+        template: with_csi
+        when: "{{`{{ inputs.parameters.csi_class }}` | squote }} != ''"
         arguments:
           parameters:
             {{- include "parameter.from.input" "terraform_image"         | nindent 13 }}
@@ -42,7 +49,30 @@ spec:
             {{- include "parameter.from.input" "vault_issue_token"       | nindent 13 }}
             {{- include "parameter.from.input" "csi_class"               | nindent 13 }}
             {{- include "parameter.from.input" "csi_secret"              | nindent 13 }}
-  - name: tf-plan
+            {{- include "parameter.from.input" "workspace_name"          | nindent 13 }}
+            {{- include "parameter.from.input" "workspace_path"          | nindent 13 }}
+    - - name: default
+        template: default
+        when: "{{`{{ inputs.parameters.csi_class }}` | squote }} == ''"
+        arguments:
+          parameters:
+            {{- include "parameter.from.input" "terraform_image"         | nindent 13 }}
+            {{- include "parameter.from.input" "git_repo"                | nindent 13 }}
+            {{- include "parameter.from.input" "git_ref_type"            | nindent 13 }}
+            {{- include "parameter.from.input" "git_version"             | nindent 13 }}
+            {{- include "parameter.from.input" "vault_secrets_enabled"   | nindent 13 }}
+            {{- include "parameter.from.input" "vault_env_secrets_paths" | nindent 13 }}
+            {{- include "parameter.from.input" "vault_role"              | nindent 13 }}
+            {{- include "parameter.from.input" "vault_issue_token"       | nindent 13 }}
+            {{- include "parameter.from.input" "csi_class"               | nindent 13 }}
+            {{- include "parameter.from.input" "csi_secret"              | nindent 13 }}
+            {{- include "parameter.from.input" "workspace_name"          | nindent 13 }}
+            {{- include "parameter.from.input" "workspace_path"          | nindent 13 }}
+
+{{- $csi_enabled := dict "name" "with_csi" "csi_enabled" true }}
+{{- $default     := dict "name" "default"  "csi_enabled" false }}
+{{ range tuple $csi_enabled $default }}
+  - name: {{ .name }}
     metadata:
       annotations:
         vault.hashicorp.com/agent-inject: "{{`{{ inputs.parameters.vault_secrets_enabled }}`}}"
@@ -61,6 +91,8 @@ spec:
       - name: vault_issue_token
       - name: csi_class
       - name: csi_secret
+      - name: workspace_name
+      - name: workspace_path
       artifacts:
       - name: git
         path: /tmp/src
@@ -68,33 +100,46 @@ spec:
           repo: '{{`{{ inputs.parameters.git_repo }}`}}'
           revision: '{{`{{ inputs.parameters.git_version }}`}}'
     volumes:
+{{- if .csi_enabled }}
       - name: secrets
         csi:
           driver: secrets-store.csi.k8s.io
           readOnly: true
           volumeAttributes:
             secretProviderClass: "{{`{{ inputs.parameters.csi_class }}`}}"
+{{- end }}
     container:
       # required to kill the agent sidecar in case we need to issue a token
       podSpecPatch: '{"shareProcessNamespace": true}'
       workingDir: /tmp/src
       image: '{{`{{ inputs.parameters.terraform_image }}`}}'
+{{- if .csi_enabled }}
       envFrom:
         - secretRef:
             name: "{{`{{ inputs.parameters.csi_secret }}`}}"
       volumeMounts:
         - name: secrets
           mountPath: /secrets
-      command: [/bin/sh, -lc]
+{{- end }}
+      command: [/bin/bash, -lc]
       args:
         - |
           {{- include "vault.secret.import.script" . | nindent 10}}
 
-          terraform init
-          terraform plan
+          # initialize variables
+          workspace_name={{`{{ inputs.parameters.workspace_name }}`}}
+          workspace_path={{`{{ inputs.parameters.workspace_path }}`}}
+          [ './' != "${workspace_path}" ] && chdir="-chdir=${workspace_path}"
+          [[ -f ${workspace_path}/terraform.tfvars ]] && tfvars="-var-file=${workspace_path}/terraform.tfvars"
+
+          set -x
+          terraform ${chdir} init -backend-config=$(pwd)/backend.hcl -input=false
+          terraform ${chdir} workspace select -or-create=true ${workspace_name}
+          terraform ${chdir} workspace list
+          terraform ${chdir} plan -lock=true -input=false ${tfvars}
 
           # apply only on tags!
-          if [ "tags" = "{{`{{ inputs.parameters.git_ref_type }}`}}" ]; then
-            terraform apply -auto-approve
+          if [ tags = "{{`{{ inputs.parameters.git_ref_type }}`}}" ]; then
+            terraform ${chdir} apply -auto-approve -lock=true -input=false ${tfvars}
           fi
-
+{{- end }}

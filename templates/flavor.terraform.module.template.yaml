@@ -45,6 +45,7 @@ spec:
             {{- include "parameter.from.input" "csi_secret"              | nindent 13 }}
     - - name: default
         template: default
+        when: "{{`{{ inputs.parameters.csi_class }}` | squote }} == ''"
         arguments:
           parameters:
             {{- include "parameter.from.input" "terraform_image"         | nindent 13 }}
