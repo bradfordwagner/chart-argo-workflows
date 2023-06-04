@@ -62,4 +62,14 @@ spec:
       command: [/bin/bash, -lc]
       args:
         - |
-          echo hello world
+          set -ex
+          helm lint .
+          helm registry login ${registry} \
+            --username ${username} \
+            --password ${password}
+          if [ "tags" = "{{`{{ inputs.parameters.git_ref_type }}`}}" ]; then
+            helm package .
+            file=$(ls | grep tgz)
+            helm push ./${file} "oci://${registry}${registry_path}"
+          fi
+
