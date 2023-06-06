@@ -2,5 +2,5 @@ apiVersion: v2
 name: workflows
 description: deploy workflows for container builds
 type: application
-version: 1.12.0
+version: 1.13.0
 
