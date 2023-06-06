@@ -1,0 +1,87 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: flavor-helm-template
+  labels:
+    {{- include "labels" . | nindent 4 }}
+spec:
+  entrypoint: main
+  templates:
+  - name: main
+    inputs:
+      parameters:
+      - name: git_repo
+      - name: git_ref_type
+        value: branches
+      - name: git_version
+      - name: helm_image
+        value: ""
+      - name: csi_class
+        value: ""
+    steps:
+    - - name: default
+        template: default
+        arguments:
+          parameters:
+            {{- include "parameter.from.input" "helm_image"   | nindent 13 }}
+            {{- include "parameter.from.input" "git_repo"     | nindent 13 }}
+            {{- include "parameter.from.input" "git_ref_type" | nindent 13 }}
+            {{- include "parameter.from.input" "git_version"  | nindent 13 }}
+            {{- include "parameter.from.input" "csi_class"    | nindent 13 }}
+
+  - name: default
+    inputs:
+      parameters:
+      - name: git_repo
+      - name: git_ref_type
+      - name: git_version
+      - name: helm_image
+      - name: csi_class
+      artifacts:
+      - name: git
+        path: /tmp/src
+        git:
+          repo: '{{`{{ inputs.parameters.git_repo }}`}}'
+          revision: '{{`{{ inputs.parameters.git_version }}`}}'
+    volumes:
+      - name: secrets
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: "{{`{{ inputs.parameters.csi_class }}`}}"
+    container:
+      workingDir: /tmp/src
+      image: '{{`{{ inputs.parameters.helm_image }}`}}'
+      envFrom:
+        - secretRef:
+            name: "{{`{{ inputs.parameters.csi_class }}`}}"
+      volumeMounts:
+        - name: secrets
+          mountPath: /secrets
+      command: [/bin/bash, -lc]
+      args:
+        - |
+          set -e
+          # sp login
+          az login --service-principal \
+            -u ${ARM_CLIENT_ID} \
+            -p ${ARM_CLIENT_SECRET} \
+            -t ${ARM_TENANT_ID}
+
+          # acr login
+          username="00000000-0000-0000-0000-000000000000"
+          password=$(az acr login --name ${registry} --expose-token --output tsv --query accessToken)
+          helm registry login ${registry} \
+            --username ${username} \
+            --password ${password}
+
+          set -x
+          # lint
+          helm lint .
+          if [ "tags" = "{{`{{ inputs.parameters.git_ref_type }}`}}" ]; then
+            helm package .
+            file=$(ls | grep tgz)
+            helm push ./${file} "oci://${registry}${registry_path}"
+          fi
+
