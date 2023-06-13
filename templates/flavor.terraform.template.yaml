@@ -135,14 +135,16 @@ spec:
           # initialize variables
           workspace_name={{`{{ inputs.parameters.workspace_name }}`}}
           workspace_path={{`{{ inputs.parameters.workspace_path }}`}}
+          tf_action={{`{{ inputs.parameters.tf_action }}`}}
           [ './' != "${workspace_path}" ] && chdir="-chdir=${workspace_path}"
           [[ -f ${workspace_path}/terraform.tfvars ]] && tfvars="-var-file=${workspace_path}/terraform.tfvars"
+          [ 'destroy' != "${tf_action}" ] && tf_plan_action='-destroy'
 
           set -x
           terraform ${chdir} init -backend-config=$(pwd)/backend.hcl -input=false
           terraform ${chdir} workspace select -or-create=true ${workspace_name}
           terraform ${chdir} workspace list
-          terraform ${chdir} plan -lock=true -input=false ${tfvars}
+          terraform ${chdir} plan -lock=true -input=false ${tfvars} ${tf_plan_action}
 
           # apply only on tags!
           if [ tags = "{{`{{ inputs.parameters.git_ref_type }}`}}" ]; then
