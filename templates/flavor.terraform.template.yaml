@@ -33,6 +33,9 @@ spec:
       # path in repository to use as entrypoint
       - name: workspace_path
         value: ./
+      # tf_action=apply|destroy
+      - name: tf_action
+        value: apply
     steps:
     - - name: csi-enabled
         template: with_csi
@@ -51,6 +54,7 @@ spec:
             {{- include "parameter.from.input" "csi_secret"              | nindent 13 }}
             {{- include "parameter.from.input" "workspace_name"          | nindent 13 }}
             {{- include "parameter.from.input" "workspace_path"          | nindent 13 }}
+            {{- include "parameter.from.input" "tf_action"               | nindent 13 }}
     - - name: default
         template: default
         when: "{{`{{ inputs.parameters.csi_class }}` | squote }} == ''"
@@ -68,6 +72,7 @@ spec:
             {{- include "parameter.from.input" "csi_secret"              | nindent 13 }}
             {{- include "parameter.from.input" "workspace_name"          | nindent 13 }}
             {{- include "parameter.from.input" "workspace_path"          | nindent 13 }}
+            {{- include "parameter.from.input" "tf_action"               | nindent 13 }}
 
 {{- $csi_enabled := dict "name" "with_csi" "csi_enabled" true }}
 {{- $default     := dict "name" "default"  "csi_enabled" false }}
@@ -93,6 +98,7 @@ spec:
       - name: csi_secret
       - name: workspace_name
       - name: workspace_path
+      - name: tf_action
       artifacts:
       - name: git
         path: /tmp/src
@@ -129,17 +135,19 @@ spec:
           # initialize variables
           workspace_name={{`{{ inputs.parameters.workspace_name }}`}}
           workspace_path={{`{{ inputs.parameters.workspace_path }}`}}
+          tf_action={{`{{ inputs.parameters.tf_action }}`}}
           [ './' != "${workspace_path}" ] && chdir="-chdir=${workspace_path}"
           [[ -f ${workspace_path}/terraform.tfvars ]] && tfvars="-var-file=${workspace_path}/terraform.tfvars"
+          [ 'destroy' == "${tf_action}" ] && tf_plan_action='-destroy'
 
           set -x
           terraform ${chdir} init -backend-config=$(pwd)/backend.hcl -input=false
           terraform ${chdir} workspace select -or-create=true ${workspace_name}
           terraform ${chdir} workspace list
-          terraform ${chdir} plan -lock=true -input=false ${tfvars}
+          terraform ${chdir} plan -lock=true -input=false ${tfvars} ${tf_plan_action}
 
           # apply only on tags!
           if [ tags = "{{`{{ inputs.parameters.git_ref_type }}`}}" ]; then
-            terraform ${chdir} apply -auto-approve -lock=true -input=false ${tfvars}
+            terraform ${chdir} {{`{{ inputs.parameters.tf_action }}`}} -auto-approve -lock=true -input=false ${tfvars}
           fi
 {{- end }}
