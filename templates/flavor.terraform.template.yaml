@@ -138,7 +138,7 @@ spec:
           tf_action={{`{{ inputs.parameters.tf_action }}`}}
           [ './' != "${workspace_path}" ] && chdir="-chdir=${workspace_path}"
           [[ -f ${workspace_path}/terraform.tfvars ]] && tfvars="-var-file=${workspace_path}/terraform.tfvars"
-          [ 'destroy' != "${tf_action}" ] && tf_plan_action='-destroy'
+          [ 'destroy' == "${tf_action}" ] && tf_plan_action='-destroy'
 
           set -x
           terraform ${chdir} init -backend-config=$(pwd)/backend.hcl -input=false
