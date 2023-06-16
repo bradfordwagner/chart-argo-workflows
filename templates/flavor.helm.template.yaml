@@ -79,6 +79,8 @@ spec:
             --password ${password}
 
           set -x
+          # download helm dependencies
+          helm dependency build
           # lint
           helm lint .
           if [ "tags" = "{{`{{ inputs.parameters.git_ref_type }}`}}" ]; then
