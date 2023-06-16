@@ -16,6 +16,9 @@ spec:
       - name: git_version
       - name: helm_image
         value: ""
+      # helm repos to add in the form of json arrayy with fields for name and url
+      - name: helm_repo_add
+        value: "[]"
       - name: csi_class
         value: ""
     steps:
@@ -23,11 +26,14 @@ spec:
         template: default
         arguments:
           parameters:
-            {{- include "parameter.from.input" "helm_image"   | nindent 13 }}
-            {{- include "parameter.from.input" "git_repo"     | nindent 13 }}
-            {{- include "parameter.from.input" "git_ref_type" | nindent 13 }}
-            {{- include "parameter.from.input" "git_version"  | nindent 13 }}
-            {{- include "parameter.from.input" "csi_class"    | nindent 13 }}
+          # TODO: need some sort of helm repo add args
+          # deploy-secrets-store-csi-driver-km5hk-1040760463: Error: no repository definition for https://kubernetes-sigs.github.io/secrets-store-csi-driver/charts. Please add the missing repos via 'helm repo add'
+            {{- include "parameter.from.input" "helm_image"    | nindent 13 }}
+            {{- include "parameter.from.input" "helm_repo_add" | nindent 13 }}
+            {{- include "parameter.from.input" "git_repo"      | nindent 13 }}
+            {{- include "parameter.from.input" "git_ref_type"  | nindent 13 }}
+            {{- include "parameter.from.input" "git_version"   | nindent 13 }}
+            {{- include "parameter.from.input" "csi_class"     | nindent 13 }}
 
   - name: default
     inputs:
@@ -36,6 +42,7 @@ spec:
       - name: git_ref_type
       - name: git_version
       - name: helm_image
+      - name: helm_repo_add
       - name: csi_class
       artifacts:
       - name: git
@@ -63,6 +70,7 @@ spec:
       args:
         - |
           set -e
+
           # sp login
           echo "logging in SP: ${ARM_CLIENT_ID}"
           az login --service-principal \
@@ -79,6 +87,15 @@ spec:
             --password ${password}
 
           set -x
+          # check for helm repo add
+          if [ "[]" != "{{`{{ inputs.parameters.helm_repo_add }}`}}" ]; then
+            echo '{{`{{inputs.parameters.helm_repo_add}}`}}' \
+              | jq '.[] | .name, .url' -r \
+              | xargs -n2 helm repo add ${1} ${2}
+          fi
+
+          # download helm dependencies
+          helm dependency build
           # lint
           helm lint .
           if [ "tags" = "{{`{{ inputs.parameters.git_ref_type }}`}}" ]; then
