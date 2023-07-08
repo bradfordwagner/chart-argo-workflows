@@ -70,21 +70,7 @@ spec:
       args:
         - |
           set -e
-
-          # sp login
-          echo "logging in SP: ${ARM_CLIENT_ID}"
-          az login --service-principal \
-            -u ${ARM_CLIENT_ID} \
-            -p ${ARM_CLIENT_SECRET} \
-            -t ${ARM_TENANT_ID}
-
-          # acr login
-          echo "logging into acr: ${registry}"
-          username="00000000-0000-0000-0000-000000000000"
-          password=$(az acr login --name ${registry} --expose-token --output tsv --query accessToken)
-          helm registry login ${registry} \
-            --username ${username} \
-            --password ${password}
+          {{- include "acr.login" . | nindent 10 }}
 
           set -x
           # check for helm repo add

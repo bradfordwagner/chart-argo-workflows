@@ -36,6 +36,9 @@ spec:
       # tf_action=apply|destroy
       - name: tf_action
         value: apply
+      # login to acr using credentials from csi
+      - name: acr_login
+        value: false
     steps:
     - - name: csi-enabled
         template: with_csi
@@ -55,6 +58,7 @@ spec:
             {{- include "parameter.from.input" "workspace_name"          | nindent 13 }}
             {{- include "parameter.from.input" "workspace_path"          | nindent 13 }}
             {{- include "parameter.from.input" "tf_action"               | nindent 13 }}
+            {{- include "parameter.from.input" "acr_login"               | nindent 13 }}
     - - name: default
         template: default
         when: "{{`{{ inputs.parameters.csi_class }}` | squote }} == ''"
@@ -73,6 +77,7 @@ spec:
             {{- include "parameter.from.input" "workspace_name"          | nindent 13 }}
             {{- include "parameter.from.input" "workspace_path"          | nindent 13 }}
             {{- include "parameter.from.input" "tf_action"               | nindent 13 }}
+            {{- include "parameter.from.input" "acr_login"               | nindent 13 }}
 
 {{- $csi_enabled := dict "name" "with_csi" "csi_enabled" true }}
 {{- $default     := dict "name" "default"  "csi_enabled" false }}
@@ -99,6 +104,7 @@ spec:
       - name: workspace_name
       - name: workspace_path
       - name: tf_action
+      - name: acr_login
       artifacts:
       - name: git
         path: /tmp/src
@@ -139,6 +145,12 @@ spec:
           [ './' != "${workspace_path}" ] && chdir="-chdir=${workspace_path}"
           [[ -f ${workspace_path}/terraform.tfvars ]] && tfvars="-var-file=${workspace_path}/terraform.tfvars"
           [ 'destroy' == "${tf_action}" ] && tf_plan_action='-destroy'
+
+          set -x
+          # login to acr if acr_login is true
+          if [ "true" = "{{`{{ inputs.parameters.acr_login }}`}}" ]; then
+          {{- include "acr.login" . | nindent 10 }}
+          fi
 
           set -x
           terraform ${chdir} init -backend-config=$(pwd)/backend.hcl -input=false
