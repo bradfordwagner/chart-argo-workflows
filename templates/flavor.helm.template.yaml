@@ -26,8 +26,6 @@ spec:
         template: default
         arguments:
           parameters:
-          # TODO: need some sort of helm repo add args
-          # deploy-secrets-store-csi-driver-km5hk-1040760463: Error: no repository definition for https://kubernetes-sigs.github.io/secrets-store-csi-driver/charts. Please add the missing repos via 'helm repo add'
             {{- include "parameter.from.input" "helm_image"    | nindent 13 }}
             {{- include "parameter.from.input" "helm_repo_add" | nindent 13 }}
             {{- include "parameter.from.input" "git_repo"      | nindent 13 }}
@@ -69,24 +67,7 @@ spec:
       command: [/bin/bash, -lc]
       args:
         - |
-          set -e
-
-          # sp login
-          echo "logging in SP: ${ARM_CLIENT_ID}"
-          az login --service-principal \
-            -u ${ARM_CLIENT_ID} \
-            -p ${ARM_CLIENT_SECRET} \
-            -t ${ARM_TENANT_ID}
-
-          # acr login
-          echo "logging into acr: ${registry}"
-          username="00000000-0000-0000-0000-000000000000"
-          password=$(az acr login --name ${registry} --expose-token --output tsv --query accessToken)
-          helm registry login ${registry} \
-            --username ${username} \
-            --password ${password}
-
-          set -x
+          set -ex
           # check for helm repo add
           if [ "[]" != "{{`{{ inputs.parameters.helm_repo_add }}`}}" ]; then
             echo '{{`{{inputs.parameters.helm_repo_add}}`}}' \
