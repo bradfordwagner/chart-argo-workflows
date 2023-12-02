@@ -29,7 +29,7 @@ spec:
         value: ""
     steps:
     - - name: csi-enabled
-        template: with_csi
+        template: with-csi
         when: "{{`{{ inputs.parameters.csi_class }}` | squote }} != ''"
         arguments:
           parameters:
@@ -59,8 +59,8 @@ spec:
             {{- include "parameter.from.input" "csi_class"               | nindent 13 }}
             {{- include "parameter.from.input" "csi_secret"              | nindent 13 }}
 
-{{- $csi_enabled := dict "name" "with_csi" "csi_enabled" true }}
-{{- $default     := dict "name" "default" "csi_enabled" false }}
+{{- $csi_enabled := dict "name" "with-csi" "csi-enabled" true }}
+{{- $default     := dict "name" "default" "csi-enabled" false }}
 {{ range tuple $csi_enabled $default }}
   - name: {{ .name }}
     metadata:

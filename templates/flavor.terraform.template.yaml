@@ -38,7 +38,7 @@ spec:
         value: apply
     steps:
     - - name: csi-enabled
-        template: with_csi
+        template: with-csi
         when: "{{`{{ inputs.parameters.csi_class }}` | squote }} != ''"
         arguments:
           parameters:
@@ -74,7 +74,7 @@ spec:
             {{- include "parameter.from.input" "workspace_path"          | nindent 13 }}
             {{- include "parameter.from.input" "tf_action"               | nindent 13 }}
 
-{{- $csi_enabled := dict "name" "with_csi" "csi_enabled" true }}
+{{- $csi_enabled := dict "name" "with-csi" "csi_enabled" true }}
 {{- $default     := dict "name" "default"  "csi_enabled" false }}
 {{ range tuple $csi_enabled $default }}
   - name: {{ .name }}
@@ -132,6 +132,7 @@ spec:
         - |
           {{- include "vault.secret.import.script" . | nindent 10}}
 
+          set -x
           # initialize variables
           workspace_name={{`{{ inputs.parameters.workspace_name }}`}}
           workspace_path={{`{{ inputs.parameters.workspace_path }}`}}
@@ -140,7 +141,6 @@ spec:
           [[ -f ${workspace_path}/terraform.tfvars ]] && tfvars="-var-file=${workspace_path}/terraform.tfvars"
           [ 'destroy' == "${tf_action}" ] && tf_plan_action='-destroy'
 
-          set -x
           terraform ${chdir} init -backend-config=$(pwd)/backend.hcl -input=false
           terraform ${chdir} workspace select -or-create=true ${workspace_name}
           terraform ${chdir} workspace list
