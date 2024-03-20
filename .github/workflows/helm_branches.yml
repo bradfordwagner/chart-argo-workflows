@@ -1,0 +1,25 @@
+name: helm-branches
+on:
+  - push
+  - workflow_dispatch
+jobs:
+  helm_branches:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout=self
+        uses: actions/checkout@v4
+      - name: task=3.35.1
+        uses: pnorton5432/setup-task@v1
+        with:
+          task-version: 3.35.1
+      - name: checkout=taskfiles
+        uses: actions/checkout@v4
+        with:
+          path: taskfiles
+          repository: bradfordwagner/taskfiles
+      - name: helm=v3.14.3
+        uses: azure/setup-helm@v4.1.0
+        with:
+           version: 'v3.14.3'
+      - name: task=branches
+        run: task -t ./taskfiles/tasks/helm.yml
